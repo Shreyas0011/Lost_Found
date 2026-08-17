@@ -1,0 +1,11 @@
+registration_number,name,email,class,section,parent_name,parent_email
+REG001,Aarav Sharma,aarav.sharma@school.edu,10,A,Rajesh Sharma,rajesh.sharma@email.com
+REG002,Priya Patel,priya.patel@school.edu,10,B,Meena Patel,meena.patel@email.com
+REG003,Rohan Verma,rohan.verma@school.edu,11,A,Suresh Verma,suresh.verma@email.com
+REG004,Anjali Singh,anjali.singh@school.edu,11,C,Kavita Singh,kavita.singh@email.com
+REG005,Karan Mehta,karan.mehta@school.edu,12,B,Anil Mehta,anil.mehta@email.com
+REG006,Sneha Nair,sneha.nair@school.edu,12,A,Lakshmi Nair,lakshmi.nair@email.com
+REG007,Vikram Joshi,vikram.joshi@school.edu,10,C,Deepak Joshi,deepak.joshi@email.com
+REG008,Divya Reddy,divya.reddy@school.edu,11,B,Srinivas Reddy,srinivas.reddy@email.com
+REG009,Arjun Kumar,arjun.kumar@school.edu,12,C,Ramesh Kumar,ramesh.kumar@email.com
+REG010,Pooja Gupta,pooja.gupta@school.edu,10,A,Vijay Gupta,vijay.gupta@email.com

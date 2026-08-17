@@ -1,0 +1,10 @@
+{
+  "name": "transcend-lost-and-found",
+  "version": "1.0.0",
+  "description": "Transcend Lost & Found Module — Full Stack React + Node.js + MongoDB",
+  "private": true,
+  "scripts": {
+    "dev": "node run-dev.js",
+    "seed": "cd server && node seed/seedStudents.js"
+  }
+}

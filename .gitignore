@@ -1,0 +1,22 @@
+# Node & Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Portable MongoDB binaries & archives
+mongodb/extracted/
+mongodb/data/
+mongodb/*.log
+mongodb/mongod.log
+mongodb/*.zip
+mongodb/*.tar.gz
+
+# User uploads & logs
+server/uploads/
+*.log
+
+# Environment & Builds
+.env
+dist/
+build/
+.DS_Store
