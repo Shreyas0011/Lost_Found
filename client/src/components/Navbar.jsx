@@ -23,9 +23,6 @@ export default function Navbar() {
         <Link to="/search" className={location.pathname === '/search' ? 'active' : ''}>
           Browse Items
         </Link>
-        <Link to="/submit" className={location.pathname === '/submit' ? 'active' : ''}>
-          Report Found Item
-        </Link>
       </div>
 
       <div>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
 import StatusBadge from '../components/StatusBadge';
-import { Trash2, CheckCircle, RefreshCw } from 'lucide-react';
+import { Trash2, CheckCircle, RefreshCw, PlusCircle } from 'lucide-react';
 
 export default function AdminItems() {
   const [items, setItems] = useState([]);
@@ -57,9 +57,14 @@ export default function AdminItems() {
       <AdminSidebar />
 
       <main className="admin-main">
-        <div className="page-header">
-          <div className="page-header__eyebrow">📦 Inventory Management</div>
-          <h1 className="page-header__title">Manage Items</h1>
+        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <div className="page-header__eyebrow">📦 Inventory Management</div>
+            <h1 className="page-header__title">Manage Items</h1>
+          </div>
+          <Link to="/admin/add-item" className="btn btn--primary btn--lg">
+            <PlusCircle size={18} /> Upload Found Item
+          </Link>
         </div>
 
         {/* Status filter tabs */}
