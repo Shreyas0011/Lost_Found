@@ -76,6 +76,14 @@ export default function ItemDetail() {
   const title = [item.color, item.brand, item.category].filter(Boolean).join(' ') || item.category;
   const icon = getCategoryIcon(item.category);
 
+  const foundDateObj = new Date(item.date_found || item.uploaded_at || Date.now());
+  const expiryDateObj = new Date(foundDateObj.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const formattedExpiry = expiryDateObj.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+
   return (
     <main className="page page--medium">
       <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--clr-primary)', fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-lg)' }}>

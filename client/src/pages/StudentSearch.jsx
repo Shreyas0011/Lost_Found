@@ -186,7 +186,7 @@ export default function StudentSearch() {
 
                   <div style={{ marginTop: 'auto', paddingTop: 'var(--space-sm)' }}>
                     <button className="btn btn--primary btn--sm btn--full" style={{ justifyContent: 'space-between' }}>
-                      <span>View Details &amp; Claim</span>
+                      <span>View Details &amp; Pickup Info</span>
                       <ArrowRight size={14} />
                     </button>
                   </div>
