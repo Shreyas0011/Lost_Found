@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch, getToken, formatDate, formatDateTime, getCategoryIcon } from '../services/api';
+import { apiFetch, getToken, formatDate, formatDateTime, getCategoryIcon, getImageUrl } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import { Send, Users, ShieldCheck, X } from 'lucide-react';
 
@@ -62,7 +62,8 @@ export default function ClaimChat() {
     if (!user || !requestId) return;
 
     const token = getToken();
-    const socket = io(window.location.origin, {
+    const serverUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const socket = io(serverUrl, {
       auth: { token }
     });
     socketRef.current = socket;
@@ -138,7 +139,7 @@ export default function ClaimChat() {
       <div className="card" style={{ display: 'flex', gap: 'var(--space-lg)', alignItems: 'center', marginBottom: 'var(--space-lg)', padding: 'var(--space-md) var(--space-lg)' }}>
         <div style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-md)', background: 'var(--clr-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', flexShrink: 0 }}>
           {item?.image_url ? (
-            <img src={item.image_url} alt={itemTitle} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
+            <img src={getImageUrl(item.image_url)} alt={itemTitle} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
           ) : (
             getCategoryIcon(item?.category)
           )}

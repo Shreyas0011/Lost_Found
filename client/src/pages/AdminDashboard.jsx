@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiFetch, formatDate, getCategoryIcon } from '../services/api';
+import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
 import { Package, Clock, CheckCircle, ShieldAlert, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
 
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
                           <tr key={item._id}>
                             <td>
                               {item.image_url ? (
-                                <img src={item.image_url} alt={title} className="table-img" />
+                                <img src={getImageUrl(item.image_url)} alt={title} className="table-img" />
                               ) : (
                                 <span style={{ fontSize: '1.5rem' }}>{getCategoryIcon(item.category)}</span>
                               )}

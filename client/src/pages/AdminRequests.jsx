@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiFetch, formatDate, formatDateTime, getCategoryIcon } from '../services/api';
+import { apiFetch, formatDate, formatDateTime, getCategoryIcon, getImageUrl } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
 import StatusBadge from '../components/StatusBadge';
 import { MessageSquare, Check, X, Calendar, RefreshCw } from 'lucide-react';
@@ -111,7 +111,7 @@ export default function AdminRequests() {
                   <div style={{ display: 'flex', gap: 'var(--space-lg)', alignItems: 'flex-start' }}>
                     <div style={{ width: '64px', height: '64px', borderRadius: 'var(--radius-md)', background: 'var(--clr-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', flexShrink: 0, border: '1px solid var(--clr-border)' }}>
                       {item?.image_url ? (
-                        <img src={item.image_url} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
+                        <img src={getImageUrl(item.image_url)} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
                       ) : (
                         icon
                       )}

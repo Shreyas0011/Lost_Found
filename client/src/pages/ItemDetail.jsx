@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch, formatDate, getCategoryIcon } from '../services/api';
+import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import { Lock, ArrowLeft } from 'lucide-react';
 
@@ -85,7 +85,7 @@ export default function ItemDetail() {
       <div className="item-detail">
         <div className="item-detail__img">
           {item.image_url ? (
-            <img src={item.image_url} alt={title} />
+            <img src={getImageUrl(item.image_url)} alt={title} />
           ) : (
             <span style={{ fontSize: '5rem' }}>{icon}</span>
           )}

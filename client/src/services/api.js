@@ -1,6 +1,11 @@
-// API Service layer for React frontend
+export const BACKEND_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_BASE = `${BACKEND_URL}/api`;
 
-const API_BASE = '/api';
+export function getImageUrl(imagePath) {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
+  return `${BACKEND_URL}${imagePath}`;
+}
 
 export function getToken() {
   return localStorage.getItem('lf_token');

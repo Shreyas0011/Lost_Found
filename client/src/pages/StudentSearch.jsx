@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch, formatDate, getCategoryIcon } from '../services/api';
+import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import { Search, Calendar, MapPin, ArrowRight, Sparkles, RefreshCw, Layers } from 'lucide-react';
 
 export default function StudentSearch() {
@@ -168,7 +168,7 @@ export default function StudentSearch() {
               >
                 <div className="item-card__img">
                   {item.image_url ? (
-                    <img src={item.image_url} alt={title} loading="lazy" />
+                    <img src={getImageUrl(item.image_url)} alt={title} loading="lazy" />
                   ) : (
                     <span style={{ fontSize: '3.8rem' }}>{icon}</span>
                   )}

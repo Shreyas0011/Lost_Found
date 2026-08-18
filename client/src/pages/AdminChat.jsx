@@ -50,7 +50,8 @@ export default function AdminChat() {
     if (!user || user.role !== 'admin') return;
 
     const token = getToken();
-    const socket = io(window.location.origin, {
+    const serverUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const socket = io(serverUrl, {
       auth: { token }
     });
     socketRef.current = socket;
