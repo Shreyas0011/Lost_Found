@@ -49,7 +49,11 @@ export async function apiFetch(endpoint, options = {}) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      throw { status: res.status, message: data.error || 'Request failed' };
+      let defaultMsg = 'Request failed';
+      if (res.status === 405 || res.status === 404) {
+        defaultMsg = 'Backend API unreachable. Please deploy Express server and configure VITE_API_URL in Vercel.';
+      }
+      throw { status: res.status, message: data.error || defaultMsg };
     }
 
     return data;
