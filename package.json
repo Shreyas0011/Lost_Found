@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "description": "Transcend Lost & Found Module — Full Stack React + Node.js + MongoDB",
   "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
+    "build": "npm run build --prefix client",
     "dev": "node run-dev.js",
     "seed": "cd server && node seed/seedStudents.js"
   }
