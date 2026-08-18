@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch, getToken, formatDateTime } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
@@ -45,25 +44,20 @@ export default function AdminChat() {
     loadClaims();
   }, [user, navigate]);
 
-  // Socket connection for admin
+  // Client-side realtime chat listener for admin
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
 
-    const token = getToken();
-    const serverUrl = import.meta.env.VITE_API_URL || window.location.origin;
-    const socket = io(serverUrl, {
-      auth: { token }
-    });
-    socketRef.current = socket;
-
-    socket.on('new_message', (msg) => {
-      if (msg.request_id === activeRequestId) {
-        setMessages((prev) => [...prev, msg]);
+    const handleCustomMsg = (e) => {
+      if (e.detail?.requestId === activeRequestId) {
+        setMessages((prev) => [...prev, e.detail.messageObj]);
       }
-    });
+    };
+
+    window.addEventListener('mock_chat_message', handleCustomMsg);
 
     return () => {
-      socket.disconnect();
+      window.removeEventListener('mock_chat_message', handleCustomMsg);
     };
   }, [user, activeRequestId]);
 
@@ -79,10 +73,6 @@ export default function AdminChat() {
 
         const msgRes = await apiFetch(`/messages/${activeRequestId}`);
         setMessages(msgRes.messages || []);
-
-        if (socketRef.current) {
-          socketRef.current.emit('join_room', activeRequestId);
-        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -97,16 +87,21 @@ export default function AdminChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!inputMsg.trim() || !activeRequestId || !socketRef.current) return;
+    if (!inputMsg.trim() || !activeRequestId) return;
 
-    socketRef.current.emit('send_message', {
-      requestId: activeRequestId,
-      message: inputMsg.trim()
-    });
-
+    const text = inputMsg.trim();
     setInputMsg('');
+
+    try {
+      await apiFetch(`/messages/${activeRequestId}`, {
+        method: 'POST',
+        body: { message: text }
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleQuickApprove = async () => {

@@ -1,9 +1,13 @@
+import { handleMockApi } from './mockBackend';
+
 export const BACKEND_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 const API_BASE = `${BACKEND_URL}/api`;
 
 export function getImageUrl(imagePath) {
   if (!imagePath) return '';
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) {
+    return imagePath;
+  }
   return `${BACKEND_URL}${imagePath}`;
 }
 
@@ -30,6 +34,11 @@ export function getUser() {
 }
 
 export async function apiFetch(endpoint, options = {}) {
+  // If no external backend URL is configured, use client-side mock backend
+  if (!import.meta.env.VITE_API_URL) {
+    return await handleMockApi(endpoint, options);
+  }
+
   const token = getToken();
   const headers = { ...options.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -49,11 +58,7 @@ export async function apiFetch(endpoint, options = {}) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      let defaultMsg = 'Request failed';
-      if (res.status === 405 || res.status === 404) {
-        defaultMsg = 'Backend API unreachable. Please deploy Express server and configure VITE_API_URL in Vercel.';
-      }
-      throw { status: res.status, message: data.error || defaultMsg };
+      throw { status: res.status, message: data.error || 'Request failed' };
     }
 
     return data;

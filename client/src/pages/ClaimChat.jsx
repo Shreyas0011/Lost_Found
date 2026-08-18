@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch, getToken, formatDate, formatDateTime, getCategoryIcon, getImageUrl } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
@@ -57,32 +56,22 @@ export default function ClaimChat() {
     loadData();
   }, [requestId, user, navigate]);
 
-  // Connect Socket.IO
+  // Connect Chat (Client-side & Realtime listener)
   useEffect(() => {
     if (!user || !requestId) return;
 
-    const token = getToken();
-    const serverUrl = import.meta.env.VITE_API_URL || window.location.origin;
-    const socket = io(serverUrl, {
-      auth: { token }
-    });
-    socketRef.current = socket;
+    setSocketConnected(true);
 
-    socket.on('connect', () => {
-      setSocketConnected(true);
-      socket.emit('join_room', requestId);
-    });
+    const handleCustomMsg = (e) => {
+      if (e.detail?.requestId === requestId) {
+        setMessages((prev) => [...prev, e.detail.messageObj]);
+      }
+    };
 
-    socket.on('disconnect', () => {
-      setSocketConnected(false);
-    });
-
-    socket.on('new_message', (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+    window.addEventListener('mock_chat_message', handleCustomMsg);
 
     return () => {
-      socket.disconnect();
+      window.removeEventListener('mock_chat_message', handleCustomMsg);
     };
   }, [requestId, user]);
 
@@ -90,16 +79,21 @@ export default function ClaimChat() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!inputMsg.trim() || !socketRef.current) return;
+    if (!inputMsg.trim()) return;
 
-    socketRef.current.emit('send_message', {
-      requestId,
-      message: inputMsg.trim()
-    });
-
+    const text = inputMsg.trim();
     setInputMsg('');
+
+    try {
+      await apiFetch(`/messages/${requestId}`, {
+        method: 'POST',
+        body: { message: text }
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleInPersonSubmit = async (e) => {
