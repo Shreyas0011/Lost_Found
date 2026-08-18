@@ -160,7 +160,20 @@ export function broadcastMockMessage(requestId, messageObj) {
 
 export function initMockStorage() {
   getStoredData(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
-  getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+  
+  const storedItems = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+  const existingIds = new Set((storedItems || []).map((i) => String(i._id || i.id)));
+  let updated = false;
+  for (const initItem of INITIAL_ITEMS) {
+    if (!existingIds.has(String(initItem._id))) {
+      storedItems.push(initItem);
+      updated = true;
+    }
+  }
+  if (updated || !storedItems.length) {
+    setStoredData(STORAGE_KEYS.ITEMS, storedItems.length ? storedItems : INITIAL_ITEMS);
+  }
+
   getStoredData(STORAGE_KEYS.CLAIMS, INITIAL_CLAIMS);
   getStoredData(STORAGE_KEYS.MESSAGES, INITIAL_MESSAGES);
 }
@@ -191,8 +204,8 @@ export async function handleMockApi(endpoint, options = {}) {
     }
   }
 
-  // Simulate network delay
-  await new Promise((r) => setTimeout(r, 150));
+  // Simulate fast network delay
+  await new Promise((r) => setTimeout(r, 80));
 
   // 1. AUTH ROUTES
   if (path === '/auth/verify' && method === 'POST') {
@@ -248,7 +261,7 @@ export async function handleMockApi(endpoint, options = {}) {
   // 2. ITEMS ROUTES
   if (path === '/items' && method === 'GET') {
     const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
-    let filtered = items.filter((i) => i.status === 'PUBLISHED');
+    let filtered = (items || []).filter((i) => i.status === 'PUBLISHED');
 
     const category = query.get('category');
     const location_found = query.get('location_found');
@@ -288,7 +301,10 @@ export async function handleMockApi(endpoint, options = {}) {
   if (path.startsWith('/items/') && method === 'GET') {
     const id = path.replace('/items/', '');
     const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
-    const found = items.find((i) => i._id === id);
+    let found = items.find((i) => String(i._id || i.id) === String(id));
+    if (!found) {
+      found = INITIAL_ITEMS.find((i) => String(i._id || i.id) === String(id));
+    }
     if (!found) throw { status: 404, message: 'Item not found.' };
     return { item: found };
   }

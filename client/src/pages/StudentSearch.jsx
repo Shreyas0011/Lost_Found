@@ -162,9 +162,9 @@ export default function StudentSearch() {
             const icon = getCategoryIcon(item.category);
             return (
               <div
-                key={item._id}
+                key={item._id || item.id}
                 className="item-card"
-                onClick={() => navigate(`/item/${item._id}`)}
+                onClick={() => navigate(`/item/${item._id || item.id}`)}
               >
                 <div className="item-card__img">
                   {item.image_url ? (
