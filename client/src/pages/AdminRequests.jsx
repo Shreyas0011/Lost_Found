@@ -65,7 +65,7 @@ export default function AdminRequests() {
         </div>
 
         <div className="tabs">
-          {['', 'PENDING', 'APPROVED', 'REJECTED'].map((status) => (
+          {['', 'APPROVED', 'REJECTED'].map((status) => (
             <button
               key={status}
               className={`tab ${filter === status ? 'active' : ''}`}
@@ -103,7 +103,7 @@ export default function AdminRequests() {
             {claims.map((claim) => {
               const item = claim.item_id;
               const student = claim.student_id;
-              const title = item ? [item.color, item.brand, item.category].filter(Boolean).join(' ') : '—';
+              const title = item ? (item.serial_number ? `#${item.serial_number} ${item.uid ? `[${item.uid}]` : ''} — ${item.category}` : item.category) : '—';
               const icon = item ? getCategoryIcon(item.category) : '📦';
 
               return (

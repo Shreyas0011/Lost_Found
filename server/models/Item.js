@@ -10,14 +10,14 @@ const LOCATIONS = [
   'Parking', 'Sports Area', 'Administrative Block', 'Other',
 ];
 
-const STATUSES = ['PENDING', 'PUBLISHED', 'UNPUBLISHED', 'CLAIMED', 'RETURNED', 'EXPIRED'];
+const STATUSES = ['PUBLISHED', 'UNCLAIMED', 'CLAIMED', 'RETURNED', 'EXPIRED', 'DEACTIVATED', 'DONATED'];
 
 const itemSchema = new mongoose.Schema(
   {
+    serial_number: { type: String, required: true, unique: true },
+    uid: { type: String, required: true, unique: true },
     category: { type: String, enum: CATEGORIES, required: true },
-    brand: { type: String, trim: true, default: '' },
-    color: { type: String, trim: true, default: '' },
-    size: { type: String, trim: true, default: '' },
+    who_found: { type: String, trim: true, default: '' },
     location_found: { type: String, enum: LOCATIONS, required: true },
     date_found: { type: Date, required: true },
     time_found: { type: String, default: '' },
@@ -31,7 +31,7 @@ const itemSchema = new mongoose.Schema(
     },
     registration_number: { type: String, required: true },
     student_name: { type: String, required: true },
-    status: { type: String, enum: STATUSES, default: 'PENDING' },
+    status: { type: String, enum: STATUSES, default: 'PUBLISHED' },
     uploaded_at: { type: Date, default: Date.now },
   },
   { timestamps: true }
@@ -39,8 +39,9 @@ const itemSchema = new mongoose.Schema(
 
 // Text index for search
 itemSchema.index({
-  brand: 'text',
-  color: 'text',
+  serial_number: 'text',
+  uid: 'text',
+  who_found: 'text',
   description: 'text',
   student_name: 'text',
 });

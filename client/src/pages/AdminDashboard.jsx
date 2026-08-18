@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
-import { Package, Clock, CheckCircle, ShieldAlert, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
+import StatusBadge from '../components/StatusBadge';
+import { Package, Clock, CheckCircle, ShieldAlert, AlertTriangle, ArrowRight, RefreshCw, Archive, HeartHandshake } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
-  const [pendingItems, setPendingItems] = useState([]);
+  const [recentItems, setRecentItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -17,8 +18,8 @@ export default function AdminDashboard() {
       const statsRes = await apiFetch('/admin/stats');
       setStats(statsRes);
 
-      const itemsRes = await apiFetch('/items/admin/all?status=PENDING');
-      setPendingItems(itemsRes.items || []);
+      const itemsRes = await apiFetch('/items/admin/all');
+      setRecentItems((itemsRes.items || []).slice(0, 5));
     } catch (err) {
       console.error(err);
       setErrorMsg(err.message || 'Failed to load admin dashboard data. Session may have expired.');
@@ -31,21 +32,6 @@ export default function AdminDashboard() {
     loadDashboardData();
   }, []);
 
-  const handlePublish = async (id) => {
-    try {
-      await apiFetch(`/items/admin/${id}/status`, {
-        method: 'PATCH',
-        body: { status: 'PUBLISHED' },
-      });
-
-      setPendingItems(prev => prev.filter(i => i._id !== id));
-      const statsRes = await apiFetch('/admin/stats');
-      setStats(statsRes);
-    } catch (err) {
-      alert(err.message || 'Failed to publish item.');
-    }
-  };
-
   return (
     <div className="admin-layout">
       <AdminSidebar />
@@ -54,7 +40,7 @@ export default function AdminDashboard() {
         <div className="page-header">
           <div className="page-header__eyebrow">👋 Welcome back</div>
           <h1 className="page-header__title">Transcend Admin Dashboard</h1>
-          <p className="page-header__sub">Overview of found item submissions, ownership claims, and pending reviews.</p>
+          <p className="page-header__sub">Overview of found items, unclaimed inventory, and ownership claim requests.</p>
         </div>
 
         {loading ? (
@@ -85,13 +71,6 @@ export default function AdminDashboard() {
               </div>
 
               <div className="stat-card">
-                <div className="stat-card__glow" style={{ background: 'var(--clr-warning)' }}></div>
-                <div className="stat-card__icon"><Clock color="var(--clr-warning)" size={24} /></div>
-                <div className="stat-card__value">{stats?.pendingItems || 0}</div>
-                <div className="stat-card__label">Pending Review</div>
-              </div>
-
-              <div className="stat-card">
                 <div className="stat-card__glow" style={{ background: 'var(--clr-success)' }}></div>
                 <div className="stat-card__icon"><CheckCircle color="var(--clr-success)" size={24} /></div>
                 <div className="stat-card__value">{stats?.publishedItems || 0}</div>
@@ -99,17 +78,24 @@ export default function AdminDashboard() {
               </div>
 
               <div className="stat-card">
+                <div className="stat-card__glow" style={{ background: '#D97706' }}></div>
+                <div className="stat-card__icon"><Archive color="#D97706" size={24} /></div>
+                <div className="stat-card__value">{stats?.unclaimedItems || 0}</div>
+                <div className="stat-card__label">Unclaimed Items</div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-card__glow" style={{ background: '#7E22CE' }}></div>
+                <div className="stat-card__icon"><HeartHandshake color="#7E22CE" size={24} /></div>
+                <div className="stat-card__value">{stats?.donatedItems || 0}</div>
+                <div className="stat-card__label">Donated Items</div>
+              </div>
+
+              <div className="stat-card">
                 <div className="stat-card__glow" style={{ background: 'var(--clr-accent)' }}></div>
                 <div className="stat-card__icon"><ShieldAlert color="var(--clr-accent)" size={24} /></div>
                 <div className="stat-card__value">{stats?.ownershipRequests || 0}</div>
                 <div className="stat-card__label">Ownership Requests</div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-card__glow" style={{ background: 'var(--clr-danger)' }}></div>
-                <div className="stat-card__icon"><AlertTriangle color="var(--clr-danger)" size={24} /></div>
-                <div className="stat-card__value">{stats?.expiringSoon || 0}</div>
-                <div className="stat-card__label">Expiring Soon (&lt; 7 Days)</div>
               </div>
             </div>
 
@@ -129,20 +115,20 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Awaiting Review Table */}
+            {/* Recent Inventory Items Table */}
             <div className="card">
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>⏳ Items Awaiting Admin Review</span>
+                <span>📦 Recent Inventory Additions</span>
                 <Link to="/admin/items" style={{ fontSize: '0.85rem', color: 'var(--clr-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  View all items <ArrowRight size={14} />
+                  View all inventory <ArrowRight size={14} />
                 </Link>
               </h2>
 
-              {pendingItems.length === 0 ? (
+              {recentItems.length === 0 ? (
                 <div className="empty-state" style={{ padding: 'var(--space-xl)' }}>
                   <div className="empty-state__icon">✅</div>
-                  <p className="empty-state__title">All clear!</p>
-                  <p className="empty-state__text">No found items waiting for review.</p>
+                  <p className="empty-state__title">No items found</p>
+                  <p className="empty-state__text">No found items logged in inventory.</p>
                 </div>
               ) : (
                 <div className="table-wrap">
@@ -150,16 +136,16 @@ export default function AdminDashboard() {
                     <thead>
                       <tr>
                         <th>Photo</th>
-                        <th>Item</th>
+                        <th>Serial # &amp; UID &amp; Category</th>
                         <th>Location</th>
-                        <th>Submitted By</th>
+                        <th>Reported By</th>
+                        <th>Status</th>
                         <th>Date</th>
-                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {pendingItems.map((item) => {
-                        const title = [item.color, item.brand, item.category].filter(Boolean).join(' ') || item.category;
+                      {recentItems.map((item) => {
+                        const title = item.category;
                         return (
                           <tr key={item._id}>
                             <td>
@@ -170,9 +156,13 @@ export default function AdminDashboard() {
                               )}
                             </td>
                             <td>
+                              <strong style={{ fontSize: '0.85rem', color: 'var(--clr-primary)' }}>#{item.serial_number || 'N/A'}</strong>
+                              {item.uid && (
+                                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748B', fontFamily: 'monospace', fontWeight: 700 }}>
+                                  {item.uid}
+                                </span>
+                              )}
                               <strong style={{ fontSize: '0.9rem' }}>{title}</strong>
-                              <br />
-                              <span style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)' }}>{item.category}</span>
                             </td>
                             <td>{item.location_found}</td>
                             <td>
@@ -180,12 +170,10 @@ export default function AdminDashboard() {
                               <br />
                               <span style={{ fontSize: '0.75rem', color: 'var(--clr-text-dim)' }}>{item.registration_number}</span>
                             </td>
-                            <td>{formatDate(item.uploaded_at)}</td>
                             <td>
-                              <button className="btn btn--success btn--sm" onClick={() => handlePublish(item._id)}>
-                                Publish
-                              </button>
+                              <StatusBadge status={item.status} />
                             </td>
+                            <td>{formatDate(item.uploaded_at)}</td>
                           </tr>
                         );
                       })}

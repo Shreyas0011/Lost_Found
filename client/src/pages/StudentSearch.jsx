@@ -9,7 +9,6 @@ export default function StudentSearch() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [location, setLocation] = useState('');
-  const [color, setColor] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -22,7 +21,6 @@ export default function StudentSearch() {
       if (q) params.set('q', q);
       if (category) params.set('category', category);
       if (location) params.set('location_found', location);
-      if (color) params.set('color', color);
       if (dateFrom) params.set('date_from', dateFrom);
       if (dateTo) params.set('date_to', dateTo);
 
@@ -49,7 +47,6 @@ export default function StudentSearch() {
     setQ('');
     setCategory('');
     setLocation('');
-    setColor('');
     setDateFrom('');
     setDateTo('');
     fetchItems();
@@ -63,7 +60,7 @@ export default function StudentSearch() {
           <Sparkles size={14} /> Official Item Registry
         </div>
         <h1 className="page-header__title">Search Lost &amp; Found</h1>
-        <p className="page-header__sub">Browse published property found across campus buildings. Recognized an item belonging to you? Click on the item to view pickup desk location and collection hours.</p>
+        <p className="page-header__sub">Browse published property found across campus buildings. Recognized an item belonging to you? Click on the item to view details and claim.</p>
       </header>
 
       {/* Capsule Search Bar */}
@@ -76,7 +73,7 @@ export default function StudentSearch() {
             type="text"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by brand, color, category, or keyword…"
+            placeholder="Search by serial number, category, description, or location…"
           />
           <button type="submit" className="btn btn--primary" style={{ borderRadius: 'var(--radius-full)', padding: '10px 24px' }}>
             Search Registry
@@ -108,17 +105,6 @@ export default function StudentSearch() {
               <option>Hostel</option><option>Parking</option><option>Sports Area</option>
               <option>Administrative Block</option><option>Other</option>
             </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Color</label>
-            <input
-              type="text"
-              placeholder="e.g. Black"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              onBlur={fetchItems}
-            />
           </div>
 
           <div className="filter-group">
@@ -158,7 +144,7 @@ export default function StudentSearch() {
       ) : (
         <div className="items-grid">
           {items.map((item) => {
-            const title = [item.color, item.brand, item.category].filter(Boolean).join(' ') || item.category;
+            const title = item.category;
             const icon = getCategoryIcon(item.category);
             return (
               <div
@@ -175,10 +161,23 @@ export default function StudentSearch() {
                   <div className="item-card__category-tag">
                     {icon} {item.category}
                   </div>
+                  {item.serial_number && (
+                    <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: 'var(--radius-full)', letterSpacing: '0.05em', display: 'flex', gap: '6px' }}>
+                      <span>#{item.serial_number}</span>
+                      {item.uid && <span style={{ opacity: 0.85, fontFamily: 'monospace' }}>| {item.uid}</span>}
+                    </div>
+                  )}
                 </div>
 
                 <div className="item-card__body">
-                  <p className="item-card__title">{title}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <p className="item-card__title" style={{ margin: 0 }}>{title}</p>
+                  </div>
+                  {item.who_found && (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', marginBottom: '8px' }}>
+                      Found by: <strong>{item.who_found}</strong>
+                    </p>
+                  )}
                   <div className="item-card__meta">
                     <span><MapPin size={15} color="var(--clr-primary)" /> {item.location_found}</span>
                     <span><Calendar size={15} color="var(--clr-text-dim)" /> Found {formatDate(item.date_found)}</span>
@@ -186,7 +185,7 @@ export default function StudentSearch() {
 
                   <div style={{ marginTop: 'auto', paddingTop: 'var(--space-sm)' }}>
                     <button className="btn btn--primary btn--sm btn--full" style={{ justifyContent: 'space-between' }}>
-                      <span>View Details &amp; Pickup Info</span>
+                      <span>View &amp; Claim Item</span>
                       <ArrowRight size={14} />
                     </button>
                   </div>

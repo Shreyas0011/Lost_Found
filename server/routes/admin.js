@@ -11,17 +11,21 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
   try {
     const [
       totalItems,
-      pendingItems,
       publishedItems,
+      unclaimedItems,
       claimedItems,
+      donatedItems,
+      deactivatedItems,
       ownershipRequests,
       pendingRequests,
       expiringSoon,
     ] = await Promise.all([
       Item.countDocuments(),
-      Item.countDocuments({ status: 'PENDING' }),
       Item.countDocuments({ status: 'PUBLISHED' }),
+      Item.countDocuments({ status: 'UNCLAIMED' }),
       Item.countDocuments({ status: 'CLAIMED' }),
+      Item.countDocuments({ status: 'DONATED' }),
+      Item.countDocuments({ status: 'DEACTIVATED' }),
       OwnershipRequest.countDocuments(),
       OwnershipRequest.countDocuments({ status: 'PENDING' }),
       Item.countDocuments({
@@ -34,9 +38,11 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
 
     return res.json({
       totalItems,
-      pendingItems,
       publishedItems,
+      unclaimedItems,
       claimedItems,
+      donatedItems,
+      deactivatedItems,
       ownershipRequests,
       pendingRequests,
       expiringSoon,

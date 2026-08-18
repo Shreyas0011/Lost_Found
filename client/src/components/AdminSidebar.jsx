@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Package, PlusCircle, ShieldCheck, MessageSquare, LogOut, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Package, PlusCircle, ShieldCheck, MessageSquare, LogOut, Sparkles, Ban, HeartHandshake } from 'lucide-react';
 
 export default function AdminSidebar() {
   const { logout } = useAuth();
@@ -12,6 +12,9 @@ export default function AdminSidebar() {
     logout();
     navigate('/admin/login');
   };
+
+  const isDeactivated = location.pathname === '/admin/items' && location.search.includes('status=DEACTIVATED');
+  const isDonated = location.pathname === '/admin/items' && location.search.includes('status=DONATED');
 
   return (
     <aside className="admin-sidebar">
@@ -29,9 +32,17 @@ export default function AdminSidebar() {
           <span className="nav-icon"><PlusCircle size={18} /></span>
           Upload Found Item
         </Link>
-        <Link to="/admin/items" className={location.pathname === '/admin/items' ? 'active' : ''}>
+        <Link to="/admin/items" className={location.pathname === '/admin/items' && !isDeactivated && !isDonated ? 'active' : ''}>
           <span className="nav-icon"><Package size={18} /></span>
           Manage Inventory
+        </Link>
+        <Link to="/admin/items?status=DONATED" className={isDonated ? 'active' : ''}>
+          <span className="nav-icon"><HeartHandshake size={18} /></span>
+          Donated Items
+        </Link>
+        <Link to="/admin/items?status=DEACTIVATED" className={isDeactivated ? 'active' : ''}>
+          <span className="nav-icon"><Ban size={18} /></span>
+          Deactivated Items
         </Link>
         <Link to="/admin/requests" className={location.pathname === '/admin/requests' ? 'active' : ''}>
           <span className="nav-icon"><ShieldCheck size={18} /></span>

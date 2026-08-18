@@ -153,8 +153,7 @@ export default function AdminChat() {
             ) : (
               claimsList.map((c) => {
                 const item = c.item_id;
-                const student = c.student_id;
-                const title = item ? [item.color, item.brand, item.category].filter(Boolean).join(' ') : 'Item';
+                const title = item ? (item.serial_number ? `#${item.serial_number} — ${item.category}` : item.category) : 'Item';
                 const isActive = c._id === activeRequestId;
 
                 return (
@@ -165,18 +164,12 @@ export default function AdminChat() {
                       padding: 'var(--space-md)',
                       borderBottom: '1px solid var(--clr-border)',
                       cursor: 'pointer',
-                      background: isActive ? 'var(--clr-surface-2)' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--clr-primary)' : '3px solid transparent',
-                      transition: 'all 0.15s ease'
+                      background: isActive ? '#EEF2FF' : 'transparent',
+                      borderLeft: isActive ? '4px solid var(--clr-primary)' : '4px solid transparent',
                     }}
                   >
-                    <p style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--clr-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {title}
-                    </p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--clr-text-muted)' }}>
-                      Student: {student?.name || '—'}
-                    </p>
-                    <div style={{ marginTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                      <strong style={{ fontSize: '0.86rem', color: 'var(--clr-text)' }}>{title}</strong>
                       <StatusBadge status={c.status} />
                     </div>
                   </div>
@@ -198,7 +191,7 @@ export default function AdminChat() {
               <div className="chat-header">
                 <div className="chat-header__info">
                   <h3>
-                    {[activeClaim?.item_id?.color, activeClaim?.item_id?.brand, activeClaim?.item_id?.category].filter(Boolean).join(' ')}
+                    {activeClaim?.item_id?.serial_number ? `#${activeClaim.item_id.serial_number} — ` : ''}{activeClaim?.item_id?.category || 'Item'}
                   </h3>
                   <p style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)' }}>
                     Student: {activeClaim?.student_id?.name} ({activeClaim?.student_id?.registration_number}) · Status: {activeClaim?.status}

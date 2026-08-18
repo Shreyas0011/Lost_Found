@@ -11,9 +11,7 @@ export default function AdminAddItem() {
 
   const [category, setCategory] = useState('');
   const [locationFound, setLocationFound] = useState('');
-  const [brand, setBrand] = useState('');
-  const [color, setColor] = useState('');
-  const [size, setSize] = useState('');
+  const [whoFound, setWhoFound] = useState('');
   const [dateFound, setDateFound] = useState(new Date().toISOString().split('T')[0]);
   const [timeFound, setTimeFound] = useState('');
   const [description, setDescription] = useState('');
@@ -60,9 +58,7 @@ export default function AdminAddItem() {
       const formData = new FormData();
       formData.append('category', category);
       formData.append('location_found', locationFound);
-      formData.append('brand', brand);
-      formData.append('color', color);
-      formData.append('size', size);
+      formData.append('who_found', whoFound);
       formData.append('date_found', dateFound);
       formData.append('time_found', timeFound);
       formData.append('description', description);
@@ -159,19 +155,15 @@ export default function AdminAddItem() {
                 </div>
               </div>
 
-              <div className="form-row form-row--3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-md)' }}>
-                <div className="form-group">
-                  <label className="form-label">Brand</label>
-                  <input className="form-control" type="text" placeholder="e.g. Apple, Nike" value={brand} onChange={(e) => setBrand(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Color</label>
-                  <input className="form-control" type="text" placeholder="e.g. Space Gray, Blue" value={color} onChange={(e) => setColor(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Size / Specs</label>
-                  <input className="form-control" type="text" placeholder="e.g. Medium, 14-inch" value={size} onChange={(e) => setSize(e.target.value)} />
-                </div>
+              <div className="form-group">
+                <label className="form-label">Who Found the Item?</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder="e.g. Student name, Security guard, Staff member..."
+                  value={whoFound}
+                  onChange={(e) => setWhoFound(e.target.value)}
+                />
               </div>
 
               <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>

@@ -10,9 +10,7 @@ export default function SubmitItem() {
 
   const [category, setCategory] = useState('');
   const [locationFound, setLocationFound] = useState('');
-  const [brand, setBrand] = useState('');
-  const [color, setColor] = useState('');
-  const [size, setSize] = useState('');
+  const [whoFound, setWhoFound] = useState('');
   const [dateFound, setDateFound] = useState(new Date().toISOString().split('T')[0]);
   const [timeFound, setTimeFound] = useState('');
   const [description, setDescription] = useState('');
@@ -59,9 +57,7 @@ export default function SubmitItem() {
       const formData = new FormData();
       formData.append('category', category);
       formData.append('location_found', locationFound);
-      formData.append('brand', brand);
-      formData.append('color', color);
-      formData.append('size', size);
+      formData.append('who_found', whoFound);
       formData.append('date_found', dateFound);
       formData.append('time_found', timeFound);
       formData.append('description', description);
@@ -141,19 +137,15 @@ export default function SubmitItem() {
               </div>
             </div>
 
-            <div className="form-row form-row--3">
-              <div className="form-group">
-                <label className="form-label">Brand</label>
-                <input className="form-control" type="text" placeholder="e.g. Nike, Apple" value={brand} onChange={(e) => setBrand(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Color</label>
-                <input className="form-control" type="text" placeholder="e.g. Black, Red" value={color} onChange={(e) => setColor(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Size</label>
-                <input className="form-control" type="text" placeholder="e.g. Medium, 15-inch" value={size} onChange={(e) => setSize(e.target.value)} />
-              </div>
+            <div className="form-group">
+              <label className="form-label">Who Found the Item?</label>
+              <input
+                className="form-control"
+                type="text"
+                placeholder="e.g. Student name, Security guard, Staff member..."
+                value={whoFound}
+                onChange={(e) => setWhoFound(e.target.value)}
+              />
             </div>
 
             <div className="form-row">

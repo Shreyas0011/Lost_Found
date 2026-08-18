@@ -18,10 +18,10 @@ const INITIAL_STUDENTS = [
 const INITIAL_ITEMS = [
   {
     _id: 'item_101',
+    serial_number: 'LF-10001',
+    uid: 'UID-9A4B8C12',
     category: 'Electronics',
-    brand: 'Apple',
-    color: 'Space Gray',
-    size: '14-inch',
+    who_found: 'Library Staff',
     location_found: 'Library Study Room 3',
     date_found: '2026-08-15T00:00:00.000Z',
     time_found: '14:30',
@@ -34,10 +34,10 @@ const INITIAL_ITEMS = [
   },
   {
     _id: 'item_102',
+    serial_number: 'LF-10002',
+    uid: 'UID-8B3C7D34',
     category: 'Clothing',
-    brand: "Levi's",
-    color: 'Blue',
-    size: 'Medium',
+    who_found: 'Sports Coach Verma',
     location_found: 'Sports Pavilion Bench',
     date_found: '2026-08-16T00:00:00.000Z',
     time_found: '16:00',
@@ -50,10 +50,10 @@ const INITIAL_ITEMS = [
   },
   {
     _id: 'item_103',
+    serial_number: 'LF-10003',
+    uid: 'UID-7C2D6E56',
     category: 'ID / Cards',
-    brand: 'School Board',
-    color: 'Navy Blue',
-    size: 'Standard',
+    who_found: 'Cafeteria Supervisor',
     location_found: 'Main Cafeteria Counter',
     date_found: '2026-08-17T00:00:00.000Z',
     time_found: '12:45',
@@ -66,10 +66,10 @@ const INITIAL_ITEMS = [
   },
   {
     _id: 'item_104',
+    serial_number: 'LF-10004',
+    uid: 'UID-6D1E5F78',
     category: 'Accessories',
-    brand: 'Fossil',
-    color: 'Black',
-    size: 'One Size',
+    who_found: 'Priya Singh (Student)',
     location_found: 'Basketball Court',
     date_found: '2026-08-14T00:00:00.000Z',
     time_found: '17:15',
@@ -82,16 +82,16 @@ const INITIAL_ITEMS = [
   },
   {
     _id: 'item_105',
+    serial_number: 'LF-10005',
+    uid: 'UID-5E0F4A90',
     category: 'Bags',
-    brand: 'Nike',
-    color: 'Black/Red',
-    size: 'Large',
+    who_found: 'Auditorium Guard Ramesh',
     location_found: 'Auditorium Row 4',
     date_found: '2026-08-18T00:00:00.000Z',
     time_found: '09:10',
     description: 'Black backpack with red Nike swoosh. Contains a geometry box and spiral notebook.',
     image_url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&auto=format&fit=crop&q=80',
-    status: 'PENDING',
+    status: 'PUBLISHED',
     registration_number: 'REG005',
     student_name: 'Kabir Mehta',
     uploaded_at: '2026-08-18T09:15:00.000Z',
@@ -258,28 +258,52 @@ export async function handleMockApi(endpoint, options = {}) {
     throw { status: 401, message: 'Invalid session' };
   }
 
+  const ensureItemIdentifiers = (itemList) => {
+    let updated = false;
+    const list = (itemList || []).map((item, idx) => {
+      const newItem = { ...item };
+      if (!newItem.serial_number) {
+        newItem.serial_number = `LF-${10001 + idx}`;
+        updated = true;
+      }
+      if (!newItem.uid) {
+        newItem.uid = `UID-${(10001 + idx).toString(16).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        updated = true;
+      }
+      return newItem;
+    });
+    if (updated) {
+      setStoredData(STORAGE_KEYS.ITEMS, list);
+    }
+    return list;
+  };
+
   // 2. ITEMS ROUTES
   if (path === '/items' && method === 'GET') {
-    const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+    const rawItems = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+    const items = ensureItemIdentifiers(rawItems);
     let filtered = (items || []).filter((i) => i.status === 'PUBLISHED');
 
     const category = query.get('category');
     const location_found = query.get('location_found');
-    const color = query.get('color');
-    const brand = query.get('brand');
     const q = query.get('q');
 
-    if (category) filtered = filtered.filter((i) => i.category === category);
-    if (location_found) filtered = filtered.filter((i) => i.location_found === location_found);
-    if (color) filtered = filtered.filter((i) => i.color.toLowerCase().includes(color.toLowerCase()));
-    if (brand) filtered = filtered.filter((i) => i.brand.toLowerCase().includes(brand.toLowerCase()));
+    if (category) {
+      const cats = category.split(',').map(s => s.trim());
+      filtered = filtered.filter((i) => cats.includes(i.category));
+    }
+    if (location_found) {
+      const locs = location_found.split(',').map(s => s.trim());
+      filtered = filtered.filter((i) => locs.includes(i.location_found));
+    }
     if (q) {
       const lq = q.toLowerCase();
       filtered = filtered.filter(
         (i) =>
+          (i.serial_number && i.serial_number.toLowerCase().includes(lq)) ||
+          (i.uid && i.uid.toLowerCase().includes(lq)) ||
           i.category.toLowerCase().includes(lq) ||
-          i.brand.toLowerCase().includes(lq) ||
-          i.color.toLowerCase().includes(lq) ||
+          (i.who_found && i.who_found.toLowerCase().includes(lq)) ||
           i.description.toLowerCase().includes(lq) ||
           i.location_found.toLowerCase().includes(lq)
       );
@@ -289,12 +313,47 @@ export async function handleMockApi(endpoint, options = {}) {
   }
 
   if (path === '/items/admin/all' && method === 'GET') {
-    const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+    const rawItems = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+    const items = ensureItemIdentifiers(rawItems);
     const status = query.get('status');
+    const category = query.get('category');
+    const location_found = query.get('location_found');
+    const reported_by = query.get('reported_by');
+    const serial_number = query.get('serial_number');
+    const date_from = query.get('date_from');
+    const date_to = query.get('date_to');
+
     let resItems = items;
+
     if (status) {
-      resItems = items.filter((i) => i.status === status);
+      const statuses = status.split(',').map(s => s.trim());
+      resItems = resItems.filter((i) => statuses.includes(i.status));
     }
+    if (category) {
+      const cats = category.split(',').map(s => s.trim());
+      resItems = resItems.filter((i) => cats.includes(i.category));
+    }
+    if (location_found) {
+      const locs = location_found.split(',').map(s => s.trim());
+      resItems = resItems.filter((i) => locs.includes(i.location_found));
+    }
+    if (reported_by) {
+      const reporters = reported_by.split(',').map(s => s.trim());
+      resItems = resItems.filter((i) => reporters.includes(i.student_name));
+    }
+    if (serial_number) {
+      const serials = serial_number.split(',').map(s => s.trim());
+      resItems = resItems.filter((i) => serials.includes(i.serial_number) || serials.includes(i.uid));
+    }
+    if (date_from) {
+      const df = new Date(date_from).getTime();
+      resItems = resItems.filter((i) => new Date(i.date_found).getTime() >= df);
+    }
+    if (date_to) {
+      const dt = new Date(date_to).getTime();
+      resItems = resItems.filter((i) => new Date(i.date_found).getTime() <= dt);
+    }
+
     return { items: resItems };
   }
 
@@ -323,18 +382,21 @@ export async function handleMockApi(endpoint, options = {}) {
       });
     }
 
+    const serial_number = `LF-${Math.floor(10000 + Math.random() * 90000)}`;
+    const uid = `UID-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
     const newItem = {
       _id: `item_${Date.now()}`,
+      serial_number,
+      uid,
       category: body.category || 'Other',
-      brand: body.brand || '',
-      color: body.color || '',
-      size: body.size || '',
+      who_found: body.who_found || '',
       location_found: body.location_found || '',
       date_found: body.date_found ? new Date(body.date_found).toISOString() : new Date().toISOString(),
       time_found: body.time_found || '',
       description: body.description || '',
       image_url: imageUrl,
-      status: 'PENDING',
+      status: 'PUBLISHED',
       submitted_by: user.id || 'st_1',
       registration_number: user.registration_number || 'REG001',
       student_name: user.name || 'Student',

@@ -34,17 +34,24 @@ const upload = multer({
 
 // ─── PUBLIC ──────────────────────────────────────────────────────────────────
 
+// Helper function to build multi-select $in query
+function parseMultiQuery(val) {
+  if (!val) return null;
+  if (Array.isArray(val)) return { $in: val };
+  if (typeof val === 'string' && val.includes(',')) {
+    return { $in: val.split(',').map(s => s.trim()).filter(Boolean) };
+  }
+  return val;
+}
+
 // GET /api/items — Search published items (public)
 router.get('/', async (req, res) => {
   try {
-    const { category, brand, color, size, location_found, date_from, date_to, q } = req.query;
+    const { category, location_found, date_from, date_to, q } = req.query;
     const filter = { status: 'PUBLISHED' };
 
-    if (category) filter.category = category;
-    if (location_found) filter.location_found = location_found;
-    if (color) filter.color = new RegExp(color, 'i');
-    if (brand) filter.brand = new RegExp(brand, 'i');
-    if (size) filter.size = new RegExp(size, 'i');
+    if (category) filter.category = parseMultiQuery(category);
+    if (location_found) filter.location_found = parseMultiQuery(location_found);
     if (date_from || date_to) {
       filter.date_found = {};
       if (date_from) filter.date_found.$gte = new Date(date_from);
@@ -67,7 +74,7 @@ router.get('/:id', async (req, res) => {
   try {
     const item = await Item.findById(req.params.id).select('-__v');
     if (!item) return res.status(404).json({ error: 'Item not found.' });
-    if (item.status !== 'PUBLISHED') {
+    if (item.status !== 'PUBLISHED' && item.status !== 'DEACTIVATED') {
       return res.status(403).json({ error: 'This item is not publicly available.' });
     }
     return res.json({ item });
@@ -82,7 +89,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', authenticateStudent, upload.single('image'), async (req, res) => {
   try {
     const {
-      category, brand, color, size, location_found,
+      category, who_found, location_found,
       date_found, time_found, description,
     } = req.body;
 
@@ -91,11 +98,14 @@ router.post('/', authenticateStudent, upload.single('image'), async (req, res) =
       : '';
     const imageFilename = req.file ? req.file.filename : '';
 
+    const serial_number = `LF-${Math.floor(10000 + Math.random() * 90000)}`;
+    const uid = `UID-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
     const item = new Item({
+      serial_number,
+      uid,
       category,
-      brand,
-      color,
-      size,
+      who_found: who_found || '',
       location_found,
       date_found: new Date(date_found),
       time_found,
@@ -105,7 +115,7 @@ router.post('/', authenticateStudent, upload.single('image'), async (req, res) =
       submitted_by: req.student.id,
       registration_number: req.student.registration_number,
       student_name: req.student.name,
-      status: 'PENDING',
+      status: 'PUBLISHED',
     });
 
     await item.save();
@@ -118,12 +128,29 @@ router.post('/', authenticateStudent, upload.single('image'), async (req, res) =
 
 // ─── ADMIN ───────────────────────────────────────────────────────────────────
 
-// GET /api/items/admin/all — All items for admin
+// GET /api/items/admin/all — All items for admin (supports multi-select filters)
 router.get('/admin/all', authenticateAdmin, async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, category, location_found, reported_by, date_from, date_to, serial_number } = req.query;
     const filter = {};
-    if (status) filter.status = status;
+
+    if (status) filter.status = parseMultiQuery(status);
+    if (category) filter.category = parseMultiQuery(category);
+    if (location_found) filter.location_found = parseMultiQuery(location_found);
+    if (reported_by) filter.student_name = parseMultiQuery(reported_by);
+    if (serial_number) {
+      const serialList = parseMultiQuery(serial_number);
+      filter.$or = [
+        { serial_number: serialList },
+        { uid: serialList }
+      ];
+    }
+    if (date_from || date_to) {
+      filter.date_found = {};
+      if (date_from) filter.date_found.$gte = new Date(date_from);
+      if (date_to) filter.date_found.$lte = new Date(date_to);
+    }
+
     const items = await Item.find(filter).sort({ uploaded_at: -1 }).select('-__v');
     return res.json({ items });
   } catch (err) {
@@ -135,7 +162,7 @@ router.get('/admin/all', authenticateAdmin, async (req, res) => {
 router.patch('/admin/:id/status', authenticateAdmin, async (req, res) => {
   try {
     const { status } = req.body;
-    const allowed = ['PUBLISHED', 'UNPUBLISHED', 'RETURNED', 'EXPIRED'];
+    const allowed = ['PUBLISHED', 'UNCLAIMED', 'CLAIMED', 'RETURNED', 'EXPIRED', 'DEACTIVATED', 'DONATED'];
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: 'Invalid status.' });
     }
