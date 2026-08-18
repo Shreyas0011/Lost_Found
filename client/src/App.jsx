@@ -20,7 +20,12 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="bg-mesh"></div>
+        <div className="bg-mesh">
+          <div className="bg-mesh__orb bg-mesh__orb--1"></div>
+          <div className="bg-mesh__orb bg-mesh__orb--2"></div>
+          <div className="bg-mesh__orb bg-mesh__orb--3"></div>
+          <div className="bg-mesh__grid"></div>
+        </div>
         <Navbar />
 
         <Routes>
