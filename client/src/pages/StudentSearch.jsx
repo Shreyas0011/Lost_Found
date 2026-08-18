@@ -63,7 +63,7 @@ export default function StudentSearch() {
           <Sparkles size={14} /> Official Item Registry
         </div>
         <h1 className="page-header__title">Search Lost &amp; Found</h1>
-        <p className="page-header__sub">Browse published property found across campus. Recognize an item belonging to you? Submit a claim to initiate verification.</p>
+        <p className="page-header__sub">Browse published property found across campus buildings. Recognized an item belonging to you? Click on the item to view pickup desk location and collection hours.</p>
       </header>
 
       {/* Capsule Search Bar */}

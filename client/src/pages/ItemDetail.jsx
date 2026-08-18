@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
-import { Lock, ArrowLeft } from 'lucide-react';
+import { MapPin, Building2, Clock, Calendar, ShieldAlert, ArrowLeft } from 'lucide-react';
 
 export default function ItemDetail() {
   const { id } = useParams();
@@ -131,70 +131,69 @@ export default function ItemDetail() {
             </div>
           </div>
 
-          {/* Action / Claim button section */}
-          <div style={{ marginTop: 'var(--space-md)' }}>
-            {item.status !== 'PUBLISHED' ? (
-              <div style={{ padding: 'var(--space-md)', background: 'var(--clr-surface-2)', borderRadius: 'var(--radius-md)', color: 'var(--clr-text-muted)', fontSize: '0.9rem' }}>
-                This item is currently not accepting claims ({item.status}).
-              </div>
-            ) : !user || user.role !== 'student' ? (
-              <div style={{ padding: 'var(--space-md)', background: 'var(--clr-surface-2)', border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-md)' }}>
-                <p style={{ fontSize: '0.9rem', color: 'var(--clr-text-muted)', marginBottom: 'var(--space-md)' }}>
-                  Is this your item? Verify your student identity to submit an ownership claim.
-                </p>
-                <Link to={`/login?redirect=/item/${item._id}`} className="btn btn--primary">
-                  Verify to Claim
-                </Link>
-              </div>
-            ) : (
-              <button className="btn btn--primary btn--lg" onClick={() => setShowClaimForm(!showClaimForm)}>
-                <Lock size={18} /> {showClaimForm ? 'Close Claim Form' : 'Request Ownership'}
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Collapsible Claim Form */}
-      {showClaimForm && (
-        <div style={{ marginTop: 'var(--space-2xl)' }}>
-          <div className="claim-panel">
-            <h2>🔐 Request Ownership</h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--clr-text-muted)', marginBottom: 'var(--space-lg)' }}>
-              Describe why you believe this item belongs to you. Include identifying marks, contents, tear/scratches, or exact location lost.
-            </p>
+      {/* Collection Instructions & 1-Month Period Card */}
+      <div style={{ marginTop: 'var(--space-2xl)' }}>
+        <div className="card" style={{ border: '2px solid var(--clr-border-indigo)', background: '#FFFFFF', padding: 'var(--space-xl)', borderRadius: 'var(--radius-xl)', boxShadow: '0 16px 40px -10px rgba(79, 70, 229, 0.15)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: 'var(--space-md)' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'var(--grad-indigo)', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <Building2 size={24} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--clr-text)' }}>How to Collect Your Item</h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--clr-text-muted)' }}>If this item belongs to you, please visit the designated building desk in person with valid identification.</p>
+            </div>
+          </div>
 
-            <form onSubmit={handleClaimSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-              <div className="form-group">
-                <label className="form-label">Why do you believe this item is yours? <span className="required">*</span></label>
-                <textarea
-                  className="form-control"
-                  rows="4"
-                  placeholder="Describe unique characteristics, inside contents, serial numbers, specific tears/wear..."
-                  value={claimMessage}
-                  onChange={(e) => setClaimMessage(e.target.value)}
-                  required
-                />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-lg)', marginTop: 'var(--space-lg)' }}>
+            {/* Pickup Location */}
+            <div style={{ background: '#EEF2FF', padding: 'var(--space-md)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--clr-border-indigo)' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#3730A3', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={15} /> Collection Location
               </div>
+              <p style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--clr-text)' }}>
+                {item.location_found ? `${item.location_found} Help Desk` : 'Central Administrative Desk'}
+              </p>
+              <p style={{ fontSize: '0.84rem', color: 'var(--clr-text-muted)', marginTop: '4px' }}>
+                Ground Floor · Security &amp; Lost &amp; Found Office
+              </p>
+            </div>
 
-              {claimError && (
-                <div style={{ padding: 'var(--space-md)', background: '#FFE4E6', border: '1px solid #FECDD3', borderRadius: 'var(--radius-md)', color: '#E11D48', fontSize: '0.85rem' }}>
-                  {claimError}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
-                <button type="submit" className="btn btn--primary" disabled={claimSubmitting}>
-                  {claimSubmitting ? 'Submitting Claim…' : 'Submit Claim'}
-                </button>
-                <button type="button" className="btn btn--secondary" onClick={() => setShowClaimForm(false)}>
-                  Cancel
-                </button>
+            {/* Collection Hours */}
+            <div style={{ background: '#EEF2FF', padding: 'var(--space-md)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--clr-border-indigo)' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#3730A3', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={15} /> Collection Time Slot
               </div>
-            </form>
+              <p style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--clr-text)' }}>
+                Mon – Fri: 10:00 AM to 4:30 PM
+              </p>
+              <p style={{ fontSize: '0.84rem', color: 'var(--clr-text-muted)', marginTop: '4px' }}>
+                Closed on weekends &amp; official holidays
+              </p>
+            </div>
+
+            {/* 1-Month Retention Period */}
+            <div style={{ background: '#FEF3C7', padding: 'var(--space-md)', borderRadius: 'var(--radius-lg)', border: '1px solid #FDE68A' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Calendar size={15} /> 1-Month Retention Limit
+              </div>
+              <p style={{ fontSize: '0.98rem', fontWeight: 800, color: '#B45309' }}>
+                Claim Deadline: {formattedExpiry}
+              </p>
+              <p style={{ fontSize: '0.84rem', color: '#92400E', marginTop: '4px' }}>
+                30 days from date logged ({formatDate(item.date_found)}). Unclaimed items will be disposed/donated.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 'var(--space-lg)', padding: 'var(--space-md)', background: '#F8FAFC', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.9rem', color: 'var(--clr-text-muted)' }}>
+            <ShieldAlert size={20} color="var(--clr-primary)" style={{ flexShrink: 0 }} />
+            <span><strong>Requirement to Collect:</strong> Please bring a valid <strong>Student ID Card</strong> for in-person identity verification at the desk.</span>
           </div>
         </div>
-      )}
+      </div>
     </main>
   );
 }

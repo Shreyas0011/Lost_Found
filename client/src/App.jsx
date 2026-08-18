@@ -30,12 +30,12 @@ export default function App() {
         <Navbar />
 
         <Routes>
-          {/* Main Landing Route is NOW Login */}
-          <Route path="/" element={<StudentLogin />} />
+          {/* Main Landing Route is NOW Public View-Only Search */}
+          <Route path="/" element={<StudentSearch />} />
+          <Route path="/search" element={<Navigate to="/" replace />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           
-          {/* Public Search & Detail */}
-          <Route path="/search" element={<StudentSearch />} />
+          {/* Item Detail View */}
           <Route path="/item/:id" element={<ItemDetail />} />
 
           {/* Student Protected Routes */}

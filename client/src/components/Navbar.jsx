@@ -13,34 +13,26 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link to={user ? "/search" : "/"} className="navbar__brand">
+      <Link to="/" className="navbar__brand">
         <span className="brand-icon"><Sparkles size={20} /></span>
         <span className="brand-title">Transcend</span>
         <span className="brand-tag">| Lost &amp; Found</span>
       </Link>
 
       <div className="navbar__links">
-        <Link to="/search" className={location.pathname === '/search' ? 'active' : ''}>
-          Browse Items
+        <Link to="/" className={location.pathname === '/' || location.pathname === '/search' ? 'active' : ''}>
+          Browse Lost Items
         </Link>
       </div>
 
       <div>
-        {user && user.role === 'student' ? (
-          <div className="navbar__user">
-            <div className="avatar">{user.name ? user.name.charAt(0).toUpperCase() : 'S'}</div>
-            <span style={{ fontWeight: 600 }}>{user.name}</span>
-            <button
-              onClick={() => { logout(); navigate('/'); }}
-              style={{ background: 'none', border: 'none', color: 'var(--clr-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '6px' }}
-              title="Sign out"
-            >
-              <LogOut size={14} />
-            </button>
-          </div>
+        {user && user.role === 'admin' ? (
+          <Link to="/admin/dashboard" className="btn btn--primary btn--sm">
+            Admin Dashboard
+          </Link>
         ) : (
-          <Link to="/" className="btn btn--primary btn--sm">
-            Portal Login
+          <Link to="/admin/login" className="btn btn--secondary btn--sm">
+            Admin Portal
           </Link>
         )}
       </div>
