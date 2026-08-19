@@ -242,11 +242,15 @@ export async function handleMockApi(endpoint, options = {}) {
 
   if (path === '/auth/admin-login' && method === 'POST') {
     const { username, password } = body;
+    if (username === 'superadmin' && password === 'superadmin123') {
+      const token = 'mock_token_superadmin';
+      return { token, username: 'superadmin', role: 'superadmin' };
+    }
     if (username === 'admin' && password === 'admin123') {
       const token = 'mock_token_admin_super';
       return { token, username: 'admin', role: 'admin' };
     }
-    throw { status: 401, message: 'Invalid admin credentials. (Use admin / admin123)' };
+    throw { status: 401, message: 'Invalid admin or superadmin credentials. (Use admin / admin123 or superadmin / superadmin123)' };
   }
 
   if (path === '/auth/me') {
@@ -420,6 +424,63 @@ export async function handleMockApi(endpoint, options = {}) {
     items[idx].status = status;
     setStoredData(STORAGE_KEYS.ITEMS, items);
     return { message: 'Status updated.', item: items[idx] };
+  }
+
+  if (path.match(/\/items\/admin\/[^/]+\/handover-form/) && (method === 'POST' || method === 'PATCH')) {
+    const parts = path.split('/');
+    const id = parts[3];
+
+    const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+    const idx = items.findIndex((i) => String(i._id || i.id) === String(id));
+    if (idx === -1) throw { status: 404, message: 'Item not found.' };
+
+    let formUrl = 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop&q=80';
+    if (body.handover_form && body.handover_form instanceof File) {
+      formUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(body.handover_form);
+      });
+    } else if (body.handover_form_url) {
+      formUrl = body.handover_form_url;
+    }
+
+    items[idx].handover_form_url = formUrl;
+    items[idx].handover_date = body.handover_date || new Date().toISOString();
+    items[idx].handover_notes = body.handover_notes || 'Handed over to student after identity & physical form verification.';
+    items[idx].handover_student_name = body.handover_student_name || body.student_name || '';
+    items[idx].handover_reg_number = body.handover_reg_number || body.registration_number || '';
+    items[idx].handover_phone = body.handover_phone || body.phone || '';
+    items[idx].handover_department = body.handover_department || body.department || '';
+    items[idx].status = 'CLAIMED';
+
+    setStoredData(STORAGE_KEYS.ITEMS, items);
+    return { message: 'Physical handover form uploaded successfully.', item: items[idx] };
+  }
+
+  if (path.match(/\/items\/admin\/[^/]+\/edit/) && (method === 'PUT' || method === 'PATCH')) {
+    const parts = path.split('/');
+    const id = parts[3];
+
+    const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+    const idx = items.findIndex((i) => String(i._id || i.id) === String(id));
+    if (idx === -1) throw { status: 404, message: 'Item not found.' };
+
+    const fields = ['serial_number', 'uid', 'category', 'who_found', 'location_found', 'date_found', 'time_found', 'description', 'student_name', 'registration_number', 'status', 'handover_notes'];
+    fields.forEach(f => {
+      if (body[f] !== undefined) items[idx][f] = body[f];
+    });
+
+    if (body.image && body.image instanceof File) {
+      items[idx].image_url = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(body.image);
+      });
+    }
+
+    setStoredData(STORAGE_KEYS.ITEMS, items);
+    return { message: 'Item updated successfully by SuperAdmin.', item: items[idx] };
   }
 
   if (path.match(/\/items\/admin\/[^/]+$/) && method === 'DELETE') {

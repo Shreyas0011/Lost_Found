@@ -14,7 +14,7 @@ export default function AdminLogin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user && user.role === 'admin') {
+    if (user && (user.role === 'admin' || user.role === 'superadmin')) {
       navigate('/admin/dashboard');
     }
   }, [user, navigate]);
@@ -27,10 +27,27 @@ export default function AdminLogin() {
         method: 'POST',
         body: { username: 'admin', password: 'admin123' },
       });
-      loginAdmin(data.username, data.token);
+      loginAdmin(data.username, data.token, data.role || 'admin');
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err.message || 'Quick admin login failed.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleQuickSuperAdminLogin = async () => {
+    setError('');
+    setSubmitting(true);
+    try {
+      const data = await apiFetch('/auth/admin-login', {
+        method: 'POST',
+        body: { username: 'superadmin', password: 'superadmin123' },
+      });
+      loginAdmin(data.username, data.token, data.role || 'superadmin');
+      navigate('/admin/dashboard');
+    } catch (err) {
+      setError(err.message || 'Quick super admin login failed.');
     } finally {
       setSubmitting(false);
     }
@@ -52,10 +69,10 @@ export default function AdminLogin() {
         body: { username: username.trim(), password },
       });
 
-      loginAdmin(data.username, data.token);
+      loginAdmin(data.username, data.token, data.role || 'admin');
       navigate('/admin/dashboard');
     } catch (err) {
-      setError(err.message || 'Invalid admin credentials.');
+      setError(err.message || 'Invalid admin or superadmin credentials.');
     } finally {
       setSubmitting(false);
     }
@@ -79,22 +96,31 @@ export default function AdminLogin() {
             <ShieldCheck size={28} />
           </div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 800, color: 'var(--clr-text)' }}>
-            Transcend Admin
+            Transcend Admin &amp; SuperAdmin
           </h1>
           <p style={{ fontSize: '0.88rem', color: 'var(--clr-text-muted)', marginTop: '4px' }}>
-            Administrative Control Panel &amp; Claims Management
+            Administrative Control Panel &amp; System Overrides
           </p>
         </div>
 
-        {/* 1-Click Quick Login Button */}
-        <div style={{ marginBottom: 'var(--space-md)' }}>
+        {/* 1-Click Quick Login Buttons */}
+        <div style={{ display: 'flex', gap: '10px', flexDirection: 'column', marginBottom: 'var(--space-md)' }}>
           <button
             type="button"
             className="btn-quick-admin"
             onClick={handleQuickAdminLogin}
             disabled={submitting}
           >
-            <Zap size={18} fill="#ffffff" /> Quick Login as Admin
+            <Zap size={18} fill="#ffffff" /> Quick Login as Standard Admin
+          </button>
+          <button
+            type="button"
+            className="btn-quick-admin"
+            style={{ background: 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)', borderColor: '#A855F7' }}
+            onClick={handleQuickSuperAdminLogin}
+            disabled={submitting}
+          >
+            <Zap size={18} fill="#FDE047" color="#FDE047" /> ⚡ Quick Login as SuperAdmin
           </button>
         </div>
 

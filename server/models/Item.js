@@ -33,6 +33,14 @@ const itemSchema = new mongoose.Schema(
     student_name: { type: String, required: true },
     status: { type: String, enum: STATUSES, default: 'PUBLISHED' },
     uploaded_at: { type: Date, default: Date.now },
+    handover_form_url: { type: String, default: '' },
+    handover_form_filename: { type: String, default: '' },
+    handover_date: { type: Date },
+    handover_notes: { type: String, default: '' },
+    handover_student_name: { type: String, default: '' },
+    handover_reg_number: { type: String, default: '' },
+    handover_phone: { type: String, default: '' },
+    handover_department: { type: String, default: '' },
   },
   { timestamps: true }
 );

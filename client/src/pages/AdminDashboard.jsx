@@ -40,7 +40,7 @@ export default function AdminDashboard() {
         <div className="page-header">
           <div className="page-header__eyebrow">👋 Welcome back</div>
           <h1 className="page-header__title">Transcend Admin Dashboard</h1>
-          <p className="page-header__sub">Overview of found items, unclaimed inventory, and ownership claim requests.</p>
+          <p className="page-header__sub">Overview of found items and unclaimed inventory.</p>
         </div>
 
         {loading ? (
@@ -90,13 +90,6 @@ export default function AdminDashboard() {
                 <div className="stat-card__value">{stats?.donatedItems || 0}</div>
                 <div className="stat-card__label">Donated Items</div>
               </div>
-
-              <div className="stat-card">
-                <div className="stat-card__glow" style={{ background: 'var(--clr-accent)' }}></div>
-                <div className="stat-card__icon"><ShieldAlert color="var(--clr-accent)" size={24} /></div>
-                <div className="stat-card__value">{stats?.ownershipRequests || 0}</div>
-                <div className="stat-card__label">Ownership Requests</div>
-              </div>
             </div>
 
             {/* Quick Actions Card */}
@@ -106,11 +99,8 @@ export default function AdminDashboard() {
                 <Link to="/admin/items" className="btn btn--primary">
                   📦 Manage All Items
                 </Link>
-                <Link to="/admin/requests" className="btn btn--secondary">
-                  🔐 Review Claims ({stats?.pendingRequests || 0} Pending)
-                </Link>
-                <Link to="/admin/chat" className="btn btn--secondary">
-                  💬 Open Verification Chat
+                <Link to="/admin/add-item" className="btn btn--secondary">
+                  ➕ Upload Found Item
                 </Link>
               </div>
             </div>

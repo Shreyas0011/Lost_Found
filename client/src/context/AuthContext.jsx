@@ -23,9 +23,9 @@ export function AuthProvider({ children }) {
     setUserState(u);
   };
 
-  const loginAdmin = (username, token) => {
+  const loginAdmin = (username, token, role = 'admin') => {
     setToken(token);
-    const u = { username, role: 'admin' };
+    const u = { username, role };
     setStoredUser(u);
     setUserState(u);
   };

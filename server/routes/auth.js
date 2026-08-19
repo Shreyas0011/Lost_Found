@@ -58,7 +58,7 @@ router.post('/verify', async (req, res) => {
   }
 });
 
-// POST /api/auth/admin-login — Admin login
+// POST /api/auth/admin-login — Admin & SuperAdmin login
 router.post('/admin-login', (req, res) => {
   try {
     const { username, password } = req.body;
@@ -67,20 +67,30 @@ router.post('/admin-login', (req, res) => {
       return res.status(400).json({ error: 'Username and password are required.' });
     }
 
-    if (
-      username !== process.env.ADMIN_USERNAME ||
-      password !== process.env.ADMIN_PASSWORD
-    ) {
-      return res.status(401).json({ error: 'Invalid admin credentials.' });
+    const superUsername = process.env.SUPERADMIN_USERNAME || 'superadmin';
+    const superPassword = process.env.SUPERADMIN_PASSWORD || 'superadmin123';
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
+    if (username === superUsername && password === superPassword) {
+      const token = jwt.sign(
+        { role: 'superadmin', username: superUsername },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+      );
+      return res.json({ token, username: superUsername, role: 'superadmin' });
     }
 
-    const token = jwt.sign(
-      { role: 'admin', username },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
+    if (username === adminUsername && password === adminPassword) {
+      const token = jwt.sign(
+        { role: 'admin', username: adminUsername },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+      );
+      return res.json({ token, username: adminUsername, role: 'admin' });
+    }
 
-    return res.json({ token, username });
+    return res.status(401).json({ error: 'Invalid admin or superadmin credentials.' });
   } catch (err) {
     console.error('Admin login error:', err);
     return res.status(500).json({ error: 'Server error during admin login.' });

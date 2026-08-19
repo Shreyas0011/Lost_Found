@@ -26,9 +26,9 @@ export default function Navbar() {
       </div>
 
       <div>
-        {user && user.role === 'admin' ? (
-          <Link to="/admin/dashboard" className="btn btn--primary btn--sm">
-            Admin Dashboard
+        {user && (user.role === 'admin' || user.role === 'superadmin') ? (
+          <Link to="/admin/dashboard" className="btn btn--primary btn--sm" style={user.role === 'superadmin' ? { background: 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)', borderColor: '#A855F7' } : {}}>
+            {user.role === 'superadmin' ? '⚡ SuperAdmin Dashboard' : 'Admin Dashboard'}
           </Link>
         ) : (
           <Link to="/admin/login" className="btn btn--secondary btn--sm">

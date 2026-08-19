@@ -176,6 +176,58 @@ router.patch('/admin/:id/status', authenticateAdmin, async (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: 'Failed to update status.' });
   }
+// POST /api/items/admin/:id/handover-form — Upload physical handover form proof & record student recipient
+router.post('/admin/:id/handover-form', authenticateAdmin, upload.single('handover_form'), async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ error: 'Item not found.' });
+
+    const formUrl = req.file ? `/uploads/${req.file.filename}` : item.handover_form_url || '';
+    const formFilename = req.file ? req.file.filename : item.handover_form_filename || '';
+
+    item.handover_form_url = formUrl;
+    item.handover_form_filename = formFilename;
+    item.handover_date = req.body.handover_date ? new Date(req.body.handover_date) : new Date();
+    if (req.body.handover_notes !== undefined) item.handover_notes = req.body.handover_notes;
+    if (req.body.handover_student_name !== undefined) item.handover_student_name = req.body.handover_student_name;
+    if (req.body.handover_reg_number !== undefined) item.handover_reg_number = req.body.handover_reg_number;
+    if (req.body.handover_phone !== undefined) item.handover_phone = req.body.handover_phone;
+    if (req.body.handover_department !== undefined) item.handover_department = req.body.handover_department;
+    item.status = 'CLAIMED';
+
+    await item.save();
+    return res.json({ message: 'Physical handover form uploaded successfully.', item });
+  } catch (err) {
+    console.error('Handover form upload error:', err);
+    return res.status(500).json({ error: 'Failed to upload physical handover form.' });
+  }
+});
+// PUT /api/items/admin/:id/edit — Full item editing by SuperAdmin & Admin
+router.put('/admin/:id/edit', authenticateAdmin, upload.single('image'), async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ error: 'Item not found.' });
+
+    const fields = ['serial_number', 'uid', 'category', 'who_found', 'location_found', 'date_found', 'time_found', 'description', 'student_name', 'registration_number', 'status', 'handover_notes'];
+    fields.forEach(f => {
+      if (req.body[f] !== undefined) item[f] = req.body[f];
+    });
+
+    if (req.file) {
+      if (item.image_filename) {
+        const oldPath = path.join(__dirname, '..', 'uploads', item.image_filename);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      item.image_url = `/uploads/${req.file.filename}`;
+      item.image_filename = req.file.filename;
+    }
+
+    await item.save();
+    return res.json({ message: 'Item details updated successfully.', item });
+  } catch (err) {
+    console.error('SuperAdmin item edit error:', err);
+    return res.status(500).json({ error: 'Failed to update item.' });
+  }
 });
 
 // DELETE /api/items/admin/:id — Delete item + image

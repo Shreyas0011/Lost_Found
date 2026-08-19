@@ -3,7 +3,21 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
-import { MapPin, Building2, Clock, Calendar, ShieldAlert, ArrowLeft, Ban, CheckCircle, Download, X, FileCheck, User, HeartHandshake } from 'lucide-react';
+import { MapPin, Building2, Clock, Calendar, ShieldAlert, ArrowLeft, Ban, CheckCircle, Download, X, FileCheck, FileText, Upload, Eye, User, HeartHandshake, Edit3, Save, AlertCircle } from 'lucide-react';
+
+const CATEGORIES = [
+  'Electronics', 'Clothing', 'Books', 'ID / Cards',
+  'Accessories', 'Bags', 'Keys', 'Stationery', 'Other',
+];
+
+const LOCATIONS = [
+  'Library', 'Cafeteria', 'Classroom', 'Hostel',
+  'Parking', 'Sports Area', 'Administrative Block', 'Other',
+];
+
+const STATUSES = [
+  'PUBLISHED', 'UNCLAIMED', 'CLAIMED', 'RETURNED', 'EXPIRED', 'DEACTIVATED', 'DONATED'
+];
 
 export default function ItemDetail() {
   const { id } = useParams();
@@ -14,28 +28,149 @@ export default function ItemDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Claim Modal state
-  const [showClaimModal, setShowClaimModal] = useState(false);
-  const [claimStudentName, setClaimStudentName] = useState(user?.name || '');
-  const [claimRegNo, setClaimRegNo] = useState(user?.registration_number || '');
-  const [claimMessage, setClaimMessage] = useState('');
-  const [letterGenerated, setLetterGenerated] = useState(false);
-  const [submittingClaim, setSubmittingClaim] = useState(false);
+  // Donate Modal state
+  const [showDonateModal, setShowDonateModal] = useState(false);
+  const [submittingDonate, setSubmittingDonate] = useState(false);
+
+  // Handover Form Modal state (Admin)
+  const [showHandoverModal, setShowHandoverModal] = useState(false);
+  const [handoverFile, setHandoverFile] = useState(null);
+  const [handoverFilePreview, setHandoverFilePreview] = useState('');
+  const [handoverNotes, setHandoverNotes] = useState('');
+  const [submittingHandover, setSubmittingHandover] = useState(false);
+
+  // SuperAdmin Full Item Edit Modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editSerial, setEditSerial] = useState('');
+  const [editUid, setEditUid] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editWhoFound, setEditWhoFound] = useState('');
+  const [editLocationFound, setEditLocationFound] = useState('');
+  const [editDateFound, setEditDateFound] = useState('');
+  const [editTimeFound, setEditTimeFound] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editStudentName, setEditStudentName] = useState('');
+  const [editRegNo, setEditRegNo] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState('');
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+
+  const openEditModal = () => {
+    if (!item) return;
+    setEditSerial(item.serial_number || '');
+    setEditUid(item.uid || '');
+    setEditCategory(item.category || 'Electronics');
+    setEditWhoFound(item.who_found || '');
+    setEditLocationFound(item.location_found || 'Library');
+    setEditDateFound(item.date_found ? new Date(item.date_found).toISOString().split('T')[0] : '');
+    setEditTimeFound(item.time_found || '');
+    setEditDescription(item.description || '');
+    setEditStudentName(item.student_name || '');
+    setEditRegNo(item.registration_number || '');
+    setEditStatus(item.status || 'PUBLISHED');
+    setEditNotes(item.handover_notes || '');
+    setEditImageFile(null);
+    setEditImagePreview(item.image_url ? getImageUrl(item.image_url) : '');
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingEdit(true);
+    try {
+      const formData = new FormData();
+      formData.append('serial_number', editSerial);
+      formData.append('uid', editUid);
+      formData.append('category', editCategory);
+      formData.append('who_found', editWhoFound);
+      formData.append('location_found', editLocationFound);
+      if (editDateFound) formData.append('date_found', editDateFound);
+      formData.append('time_found', editTimeFound);
+      formData.append('description', editDescription);
+      formData.append('student_name', editStudentName);
+      formData.append('registration_number', editRegNo);
+      formData.append('status', editStatus);
+      formData.append('handover_notes', editNotes);
+      if (editImageFile) formData.append('image', editImageFile);
+
+      await apiFetch(`/items/admin/${item._id}/edit`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      alert('Item details updated successfully on website by SuperAdmin!');
+      setShowEditModal(false);
+      fetchDetail();
+    } catch (err) {
+      alert(err.message || 'Failed to update item details.');
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
+
+  const fetchDetail = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch(`/items/${id}`);
+      setItem(data.item);
+    } catch (err) {
+      setError(err.message || 'Item not found or unavailable.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDetail = async () => {
-      setLoading(true);
-      try {
-        const data = await apiFetch(`/items/${id}`);
-        setItem(data.item);
-      } catch (err) {
-        setError(err.message || 'Item not found or unavailable.');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchDetail();
   }, [id]);
+
+  const openHandoverModal = () => {
+    setHandoverFile(null);
+    setHandoverFilePreview(item?.handover_form_url ? getImageUrl(item.handover_form_url) : '');
+    setHandoverNotes(item?.handover_notes || '');
+    setHandoverStudentName(item?.handover_student_name || '');
+    setHandoverRegNo(item?.handover_reg_number || '');
+    setHandoverPhone(item?.handover_phone || '');
+    setHandoverDepartment(item?.handover_department || '');
+    setShowHandoverModal(true);
+  };
+
+  const handleHandoverFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!handoverStudentName.trim() || !handoverRegNo.trim()) {
+      alert('Please enter Student Name and Registration/Roll Number.');
+      return;
+    }
+    if (!handoverFile && !item?.handover_form_url) {
+      alert('Please select a scanned/photographed physical handover form file.');
+      return;
+    }
+    setSubmittingHandover(true);
+    try {
+      const formData = new FormData();
+      if (handoverFile) formData.append('handover_form', handoverFile);
+      formData.append('handover_notes', handoverNotes);
+      formData.append('handover_student_name', handoverStudentName);
+      formData.append('handover_reg_number', handoverRegNo);
+      formData.append('handover_phone', handoverPhone);
+      formData.append('handover_department', handoverDepartment);
+
+      await apiFetch(`/items/admin/${item._id}/handover-form`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      alert('Physical handover form proof & recipient student details saved successfully!');
+      setShowHandoverModal(false);
+      fetchDetail();
+    } catch (err) {
+      alert(err.message || 'Failed to upload physical handover form.');
+    } finally {
+      setSubmittingHandover(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -60,138 +195,6 @@ export default function ItemDetail() {
     }
   };
 
-  const handleClaimFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!claimMessage.trim()) {
-      alert('Please provide proof of ownership / details.');
-      return;
-    }
-    setSubmittingClaim(true);
-    try {
-      if (user?.role === 'student') {
-        await apiFetch('/claims', {
-          method: 'POST',
-          body: { item_id: item._id, message: claimMessage },
-        }).catch(() => {});
-      }
-      setLetterGenerated(true);
-    } catch (err) {
-      console.error(err);
-      setLetterGenerated(true);
-    } finally {
-      setSubmittingClaim(false);
-    }
-  };
-
-  const downloadStudentAcceptedLetterPNG = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 950;
-    const ctx = canvas.getContext('2d');
-
-    // Background gradient
-    const grad = ctx.createLinearGradient(0, 0, 800, 950);
-    grad.addColorStop(0, '#0F172A');
-    grad.addColorStop(1, '#1E293B');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 800, 950);
-
-    // Outer border
-    ctx.strokeStyle = '#38BDF8';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(30, 30, 740, 890);
-
-    // Title & Header
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 26px sans-serif';
-    ctx.fillText('TRANSCEND LOST & FOUND MODULE', 60, 90);
-
-    ctx.fillStyle = '#38BDF8';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText('STUDENT CLAIM ACCEPTANCE LETTER', 60, 130);
-
-    // Separator line
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(60, 155);
-    ctx.lineTo(740, 155);
-    ctx.stroke();
-
-    // Key-value rows
-    const drawRow = (label, val, y) => {
-      ctx.fillStyle = '#94A3B8';
-      ctx.font = '16px sans-serif';
-      ctx.fillText(label, 60, y);
-
-      ctx.fillStyle = '#F8FAFC';
-      ctx.font = 'bold 18px sans-serif';
-      ctx.fillText(String(val || '—'), 260, y);
-    };
-
-    drawRow('ITEM SERIAL NUMBER:', item?.serial_number || 'LF-10001', 195);
-    drawRow('UNIQUE ID (UID):', item?.uid || 'UID-10001', 235);
-    drawRow('ITEM CATEGORY:', item?.category || 'General', 275);
-    drawRow('LOCATION FOUND:', item?.location_found || 'Campus Building', 315);
-    drawRow('WHO FOUND:', item?.who_found || 'Campus Staff', 355);
-    drawRow('REPORTED BY:', item?.student_name || 'System Admin', 395);
-
-    // Separator line
-    ctx.beginPath();
-    ctx.moveTo(60, 420);
-    ctx.lineTo(740, 420);
-    ctx.stroke();
-
-    drawRow('CLAIMANT STUDENT:', claimStudentName || 'Student', 465);
-    drawRow('REGISTRATION NUMBER:', claimRegNo || 'N/A', 510);
-    drawRow('ACCEPTANCE DATE:', new Date().toLocaleDateString('en-IN'), 555);
-
-    // Verification Box
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.12)';
-    ctx.fillRect(60, 600, 680, 140);
-    ctx.strokeStyle = '#10B981';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(60, 600, 680, 140);
-
-    ctx.fillStyle = '#10B981';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.fillText('STATUS: CLAIM ACCEPTED & VERIFIED', 90, 645);
-
-    ctx.fillStyle = '#E2E8F0';
-    ctx.font = '15px sans-serif';
-    ctx.fillText('Present this letter along with your Student ID Card at the collection desk', 90, 685);
-    ctx.fillText('for physical item verification and handover.', 90, 715);
-
-    // Official Stamp Seal
-    ctx.save();
-    ctx.translate(620, 780);
-    ctx.rotate(-0.15);
-    ctx.strokeStyle = '#10B981';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(0, 0, 65, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, 58, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.fillStyle = '#10B981';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('TRANSCEND AUTH', 0, -18);
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('ACCEPTED', 0, 8);
-    ctx.font = '11px sans-serif';
-    ctx.fillText('VERIFIED SEAL', 0, 28);
-    ctx.restore();
-
-    // Trigger download
-    const link = document.createElement('a');
-    link.download = `Student_Accepted_Letter_${item?.serial_number || 'Item'}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  };
-
   if (loading) return <div className="loading-overlay"><div className="spinner"></div></div>;
 
   if (error || !item) {
@@ -201,7 +204,11 @@ export default function ItemDetail() {
           <div className="empty-state__icon">🔍</div>
           <p className="empty-state__title">Item Not Found</p>
           <p className="empty-state__text">{error || 'This item may have been removed or claimed.'}</p>
-          <Link to="/" className="btn btn--primary">Back to Search</Link>
+          {user?.role === 'admin' || user?.role === 'superadmin' ? (
+            <Link to="/admin/items" className="btn btn--primary">Back to Manage Inventory</Link>
+          ) : (
+            <Link to="/" className="btn btn--primary">Back to Search</Link>
+          )}
         </div>
       </main>
     );
@@ -218,31 +225,40 @@ export default function ItemDetail() {
     year: 'numeric',
   });
 
-  const handleDonate = async () => {
-    const itemDate = new Date(item.uploaded_at || item.date_found || Date.now());
-    const daysElapsed = Math.floor((Date.now() - itemDate.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysElapsed < 30 && item.status !== 'UNCLAIMED' && item.status !== 'EXPIRED') {
-      alert(`Item cannot be donated yet. The 1-month collection period window has ${30 - daysElapsed} day(s) remaining.`);
-      return;
-    }
-    if (!window.confirm('Donate this item to charity? The 1-month collection window has crossed.')) return;
+  const itemDateObj = item ? new Date(item.uploaded_at || item.date_found || Date.now()) : new Date();
+  const daysElapsed = item ? Math.floor((Date.now() - itemDateObj.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+  const daysRemaining = Math.max(0, 30 - daysElapsed);
+  const isEligibleForDonate = daysElapsed >= 30 || item?.status === 'UNCLAIMED' || item?.status === 'EXPIRED';
+
+  const handleConfirmDonate = async () => {
+    setSubmittingDonate(true);
     try {
       await apiFetch(`/items/admin/${item._id}/status`, {
         method: 'PATCH',
         body: { status: 'DONATED' },
       });
-      alert('Item has been donated and moved to Donated Items archive.');
+      setShowDonateModal(false);
       navigate('/admin/items?status=DONATED');
     } catch (err) {
       alert(err.message || 'Failed to donate item.');
+    } finally {
+      setSubmittingDonate(false);
     }
   };
 
+  const isAdminOrSuper = user?.role === 'admin' || user?.role === 'superadmin';
+
   return (
     <main className="page page--medium">
-      <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--clr-primary)', fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-lg)' }}>
-        <ArrowLeft size={16} /> Back to Search
-      </Link>
+      {isAdminOrSuper ? (
+        <Link to="/admin/items" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--clr-primary)', fontWeight: 700, fontSize: '0.92rem', marginBottom: 'var(--space-lg)' }}>
+          <ArrowLeft size={16} /> Back to Manage Inventory
+        </Link>
+      ) : (
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--clr-primary)', fontWeight: 600, fontSize: '0.9rem', marginBottom: 'var(--space-lg)' }}>
+          <ArrowLeft size={16} /> Back to Search
+        </Link>
+      )}
 
       <div className="item-detail">
         <div className="item-detail__img">
@@ -297,58 +313,136 @@ export default function ItemDetail() {
               <span className="item-meta-row__key">Time Found</span>
               <span className="item-meta-row__val">{item.time_found || '—'}</span>
             </div>
-            <div className="item-meta-row">
-              <span className="item-meta-row__key">Who Found</span>
-              <span className="item-meta-row__val">{item.who_found || 'Campus Staff'}</span>
-            </div>
-            <div className="item-meta-row">
-              <span className="item-meta-row__key">Reported By</span>
-              <span className="item-meta-row__val">{item.student_name} ({item.registration_number})</span>
-            </div>
+            {(user?.role === 'admin' || user?.role === 'superadmin') && (
+              <>
+                <div className="item-meta-row">
+                  <span className="item-meta-row__key">Who Found</span>
+                  <span className="item-meta-row__val">{item.who_found || 'Campus Staff'}</span>
+                </div>
+                <div className="item-meta-row">
+                  <span className="item-meta-row__key">Reported By</span>
+                  <span className="item-meta-row__val">{item.student_name} ({item.registration_number})</span>
+                </div>
+              </>
+            )}
             <div className="item-meta-row">
               <span className="item-meta-row__key">Description</span>
               <span className="item-meta-row__val">{item.description || '—'}</span>
             </div>
           </div>
 
-          {/* Action Buttons: CLAIM (students & all), DONATE & DEACTIVATE (admin only) */}
+          {/* Action Buttons: EDIT (superadmin), DONATE & DEACTIVATE & UPLOAD FORM (admin/superadmin) */}
           <div style={{ marginTop: 'var(--space-xl)', display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
-            {item.status !== 'DEACTIVATED' && item.status !== 'CLAIMED' && item.status !== 'DONATED' && (
+            {user?.role === 'superadmin' && (
               <button
                 className="btn btn--primary btn--lg"
-                style={{ flex: 1, minWidth: '180px', justifyContent: 'center' }}
-                onClick={() => {
-                  setLetterGenerated(false);
-                  setShowClaimModal(true);
-                }}
+                style={{ flex: 1, minWidth: '180px', justifyContent: 'center', background: 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)', borderColor: '#A855F7', fontWeight: 800 }}
+                onClick={openEditModal}
+                title="Edit all fields of this item directly on website"
               >
-                <CheckCircle size={18} /> Claim Item
+                <Edit3 size={18} /> Edit Item Fields
               </button>
             )}
 
-            {item.status !== 'DEACTIVATED' && item.status !== 'DONATED' && user?.role === 'admin' && (
+            {(user?.role === 'admin' || user?.role === 'superadmin') && (
+              <button
+                className="btn btn--secondary btn--lg"
+                style={{ flex: 1, minWidth: '180px', justifyContent: 'center', background: '#EEF2FF', color: '#4338CA', borderColor: '#C7D2FE', fontWeight: 800 }}
+                onClick={openHandoverModal}
+                title="Upload physical handover form filled by student"
+              >
+                <FileText size={18} /> {item.handover_form_url ? 'Update Form Proof' : 'Upload Physical Form'}
+              </button>
+            )}
+
+            {item.status !== 'DEACTIVATED' && item.status !== 'DONATED' && (user?.role === 'admin' || user?.role === 'superadmin') && (
               <button
                 className="btn btn--secondary btn--lg"
                 style={{ flex: 1, minWidth: '180px', justifyContent: 'center', background: '#F3E8FF', color: '#7E22CE', borderColor: '#E9D5FF', fontWeight: 800 }}
-                onClick={handleDonate}
+                onClick={() => setShowDonateModal(true)}
                 title="Donate item after 1-month collection period"
               >
                 <HeartHandshake size={18} /> Donate Item
               </button>
             )}
 
-            {item.status !== 'DEACTIVATED' && user?.role === 'admin' && (
+            {item.status !== 'DEACTIVATED' && (user?.role === 'admin' || user?.role === 'superadmin') && (
               <button
-                className="btn btn--danger btn--lg"
-                style={{ flex: 1, minWidth: '180px', justifyContent: 'center', background: '#DC2626', borderColor: '#B91C1C' }}
+                className="btn btn--danger-solid btn--lg"
+                style={{ flex: 1, minWidth: '180px', justifyContent: 'center' }}
                 onClick={handleDeactivate}
               >
-                <Ban size={18} /> Deactivate Item
+                <Ban size={18} color="#FFFFFF" /> Deactivate Item
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* UPLOADED PHYSICAL HANDOVER FORM PROOF CARD (ADMIN / SUPERADMIN ONLY) */}
+      {item.handover_form_url && (user?.role === 'admin' || user?.role === 'superadmin') && (
+        <div className="card" style={{ marginTop: 'var(--space-2xl)', border: '2px solid #818CF8', background: '#F8FAFC', padding: 'var(--space-xl)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: '#EEF2FF', color: '#4F46E5', display: 'grid', placeItems: 'center' }}>
+                <FileCheck size={22} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--clr-text)' }}>Uploaded Physical Handover Form &amp; Recipient Details</h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--clr-text-muted)' }}>Official paper form filled &amp; signed by student upon item pickup.</p>
+              </div>
+            </div>
+            <span className="badge badge--published">Verified Handover Document</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-lg)', alignItems: 'center', marginTop: 'var(--space-md)' }}>
+            <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '250px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
+              <a href={getImageUrl(item.handover_form_url)} target="_blank" rel="noreferrer">
+                <img src={getImageUrl(item.handover_form_url)} alt="Physical Handover Form Proof" style={{ maxHeight: '230px', maxWidth: '100%', objectFit: 'contain' }} />
+              </a>
+            </div>
+
+            <div>
+              <div style={{ background: '#FFFFFF', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--clr-border-indigo)' }}>
+                <p style={{ fontSize: '0.82rem', fontWeight: 800, color: '#4338CA', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Handover Recipient Details</p>
+                <p style={{ fontSize: '0.92rem', color: 'var(--clr-text)', marginBottom: '4px' }}>
+                  Student Name: <strong>{item.handover_student_name || '—'}</strong>
+                </p>
+                <p style={{ fontSize: '0.92rem', color: 'var(--clr-text)', marginBottom: '4px' }}>
+                  Reg / Roll #: <strong>{item.handover_reg_number || '—'}</strong>
+                </p>
+                {item.handover_phone && (
+                  <p style={{ fontSize: '0.9rem', color: 'var(--clr-text)', marginBottom: '4px' }}>
+                    Contact Phone: <strong>{item.handover_phone}</strong>
+                  </p>
+                )}
+                {item.handover_department && (
+                  <p style={{ fontSize: '0.9rem', color: 'var(--clr-text)', marginBottom: '4px' }}>
+                    Dept / Hostel: <strong>{item.handover_department}</strong>
+                  </p>
+                )}
+                <p style={{ fontSize: '0.88rem', color: 'var(--clr-text-muted)', marginTop: '6px', borderTop: '1px solid var(--clr-border)', paddingTop: '6px' }}>
+                  Handover Date: <strong>{formatDate(item.handover_date)}</strong>
+                </p>
+                {item.handover_notes && (
+                  <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-dim)', marginTop: '4px' }}>
+                    Remarks: <em>{item.handover_notes}</em>
+                  </p>
+                )}
+              </div>
+
+              <div style={{ marginTop: 'var(--space-md)', display: 'flex', gap: 'var(--space-md)' }}>
+                <a href={getImageUrl(item.handover_form_url)} target="_blank" rel="noreferrer" className="btn btn--primary btn--sm">
+                  <Eye size={15} /> Inspect Full Form Document
+                </a>
+                <button className="btn btn--secondary btn--sm" onClick={openHandoverModal}>
+                  <FileText size={15} /> Edit Handover Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Collection Instructions Card */}
       <div style={{ marginTop: 'var(--space-2xl)' }}>
@@ -358,12 +452,25 @@ export default function ItemDetail() {
               <Building2 size={24} />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--clr-text)' }}>Item Handover &amp; Verification Desk</h2>
-              <p style={{ fontSize: '0.88rem', color: 'var(--clr-text-muted)' }}>Use the Claim option above to generate your official Student Accepted Letter PNG for physical pickup.</p>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--clr-text)' }}>Item Handover &amp; Physical Form Notice</h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--clr-text-muted)' }}>Instructions for physical verification and counter form pickup.</p>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-lg)', marginTop: 'var(--space-lg)' }}>
+          {/* DISPLAY MESSAGE & PHYSICAL PAPER FORM INSTRUCTION */}
+          <div style={{ background: '#EFF6FF', border: '2px solid #3B82F6', padding: '18px 22px', borderRadius: 'var(--radius-lg)', marginTop: 'var(--space-md)', marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+            <ShieldAlert size={28} color="#2563EB" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1E40AF' }}>
+                Please bring your ID card as a proof to collect the lost item
+              </p>
+              <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: '#1E3A8A', fontWeight: 600, lineHeight: 1.5 }}>
+                📝 <strong>No online form is required to be filled on this website.</strong> When you visit the help desk counter, you will be handed a physical paper form that has to be filled out manually before taking your item.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-lg)' }}>
             <div style={{ background: '#EEF2FF', padding: 'var(--space-md)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--clr-border-indigo)' }}>
               <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#3730A3', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <MapPin size={15} /> Collection Location
@@ -397,164 +504,393 @@ export default function ItemDetail() {
         </div>
       </div>
 
-      {/* CLAIM FORM & STUDENT ACCEPTED LETTER PNG MODAL */}
-      {showClaimModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: '20px' }}>
+      {/* PHYSICAL HANDOVER FORM UPLOAD MODAL (ADMIN ONLY) */}
+      {showHandoverModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(6px)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: '20px' }}>
           <div className="card" style={{ width: '100%', maxWidth: '640px', background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: 'var(--space-2xl)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
             <button
-              onClick={() => setShowClaimModal(false)}
+              onClick={() => setShowHandoverModal(false)}
               style={{ position: 'absolute', top: '20px', right: '20px', background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
             >
               <X size={18} />
             </button>
 
-            {!letterGenerated ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'var(--space-lg)' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: '#EEF2FF', color: 'var(--clr-primary)', display: 'grid', placeItems: 'center' }}>
-                    <FileCheck size={24} />
-                  </div>
-                  <div>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Item Ownership Claim Form</h2>
-                    <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)' }}>Submit claim details to generate your official Student Accepted Letter PNG.</p>
-                  </div>
-                </div>
-
-                <form onSubmit={handleClaimFormSubmit}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                    <div style={{ background: '#F8FAFC', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)' }}>
-                      <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--clr-text-muted)', marginBottom: '4px' }}>Item Reference</p>
-                      <p style={{ fontSize: '0.96rem', fontWeight: 800 }}>{item.category} — Serial #: <span style={{ color: 'var(--clr-primary)' }}>{item.serial_number || 'N/A'}</span></p>
-                    </div>
-
-                    <div>
-                      <label className="form-label">Student Name <span className="required">*</span></label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={claimStudentName}
-                        onChange={(e) => setClaimStudentName(e.target.value)}
-                        required
-                        placeholder="Enter full student name"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="form-label">Registration Number <span className="required">*</span></label>
-                      <input
-                        className="form-control"
-                        type="text"
-                        value={claimRegNo}
-                        onChange={(e) => setClaimRegNo(e.target.value)}
-                        required
-                        placeholder="e.g. REG001"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="form-label">Proof of Ownership / Remarks <span className="required">*</span></label>
-                      <textarea
-                        className="form-control"
-                        rows="3"
-                        value={claimMessage}
-                        onChange={(e) => setClaimMessage(e.target.value)}
-                        placeholder="Describe exact identifying features, marks, or location where you lost it..."
-                        required
-                      />
-                    </div>
-
-                    <button type="submit" className="btn btn--primary btn--lg" style={{ marginTop: 'var(--space-sm)' }} disabled={submittingClaim}>
-                      <CheckCircle size={18} /> {submittingClaim ? 'Generating Authorization…' : 'Submit Claim & Generate Letter PNG'}
-                    </button>
-                  </div>
-                </form>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: 'var(--space-lg)' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: '#EEF2FF', color: '#4F46E5', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <FileText size={26} />
               </div>
-            ) : (
               <div>
-                <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#DCFCE7', color: '#166534', display: 'grid', placeItems: 'center', margin: '0 auto var(--space-md)' }}>
-                    <CheckCircle size={32} />
-                  </div>
-                  <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#166534' }}>Student Accepted Letter Generated!</h2>
-                  <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)' }}>Below is your official claim acceptance document. Click download to save the letter PNG.</p>
-                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Upload Physical Handover Form &amp; Student Details</h2>
+                <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)' }}>Record recipient student information and upload scanned copy of physical paper form.</p>
+              </div>
+            </div>
 
-                {/* VISUAL STUDENT ACCEPTED LETTER CARD */}
-                <div
-                  style={{
-                    background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: '24px',
-                    color: '#FFFFFF',
-                    border: '2px solid #38BDF8',
-                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
-                    position: 'relative',
-                    overflow: 'hidden',
+            <form onSubmit={handleHandoverFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <div style={{ background: '#F8FAFC', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)' }}>
+                <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--clr-text-muted)', marginBottom: '4px' }}>Item Reference</p>
+                <p style={{ fontSize: '0.96rem', fontWeight: 800 }}>
+                  #{item.serial_number || 'N/A'} — {item.category}
+                </p>
+                <p style={{ fontSize: '0.82rem', color: '#64748B' }}>
+                  Location Found: {item.location_found}
+                </p>
+              </div>
+
+              {/* RECIPIENT STUDENT DETAILS (FILLED BY ADMIN) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Student Name <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Full name of student recipient"
+                    value={handoverStudentName}
+                    onChange={(e) => setHandoverStudentName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Registration / Roll Number <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. 21BCE1042 / Roll No"
+                    value={handoverRegNo}
+                    onChange={(e) => setHandoverRegNo(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Contact / Phone Number <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. +91 9876543210"
+                    value={handoverPhone}
+                    onChange={(e) => setHandoverPhone(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Department / Hostel / Branch</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. CSE / Hostel Block A"
+                    value={handoverDepartment}
+                    onChange={(e) => setHandoverDepartment(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">Select Scanned/Photographed Physical Form <span className="required">*</span></label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="form-control"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setHandoverFile(file);
+                      setHandoverFilePreview(URL.createObjectURL(file));
+                    }
                   }}
-                >
-                  <div style={{ borderBottom: '2px solid #334155', paddingBottom: '12px', marginBottom: '16px' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                      Transcend Lost &amp; Found Module
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, marginTop: '2px' }}>
-                      STUDENT ACCEPTED CLAIM LETTER
-                    </div>
-                  </div>
+                />
+              </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem' }}>
-                    <div>
-                      <span style={{ color: '#94A3B8', display: 'block', fontSize: '0.75rem' }}>SERIAL NUMBER</span>
-                      <strong style={{ color: '#38BDF8', fontSize: '1rem', fontFamily: 'monospace' }}>#{item.serial_number || 'LF-10001'}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#94A3B8', display: 'block', fontSize: '0.75rem' }}>CATEGORY</span>
-                      <strong>{item.category}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#94A3B8', display: 'block', fontSize: '0.75rem' }}>STUDENT NAME</span>
-                      <strong>{claimStudentName}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#94A3B8', display: 'block', fontSize: '0.75rem' }}>REGISTRATION #</span>
-                      <strong>{claimRegNo}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#94A3B8', display: 'block', fontSize: '0.75rem' }}>LOCATION FOUND</span>
-                      <span>{item.location_found}</span>
-                    </div>
-                    <div>
-                      <span style={{ color: '#94A3B8', display: 'block', fontSize: '0.75rem' }}>REPORTED BY</span>
-                      <span>{item.student_name}</span>
-                    </div>
-                  </div>
-
-                  {/* Verification Banner */}
-                  <div style={{ marginTop: '16px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10B981', padding: '10px 14px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <CheckCircle size={20} color="#10B981" />
-                    <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10B981' }}>CLAIM STATUS: ACCEPTED</div>
-                      <div style={{ fontSize: '0.75rem', color: '#CBD5E1' }}>Valid for immediate in-person physical collection</div>
-                    </div>
-                  </div>
-
-                  {/* Stamp Graphic */}
-                  <div style={{ position: 'absolute', bottom: '16px', right: '16px', border: '3px double #10B981', borderRadius: '50%', width: '80px', height: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-12deg)', color: '#10B981', opacity: 0.85 }}>
-                    <div style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase' }}>OFFICIAL</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 900 }}>ACCEPTED</div>
-                    <div style={{ fontSize: '0.5rem' }}>TRANSCEND</div>
-                  </div>
+              {handoverFilePreview && (
+                <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '220px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
+                  <img src={handoverFilePreview} alt="Handover Form Preview" style={{ maxHeight: '200px', maxWidth: '100%', objectFit: 'contain' }} />
                 </div>
+              )}
 
-                <div style={{ marginTop: 'var(--space-xl)', display: 'flex', gap: 'var(--space-md)' }}>
-                  <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={downloadStudentAcceptedLetterPNG}>
-                    <Download size={18} /> Download Letter PNG
-                  </button>
-                  <button className="btn btn--secondary btn--lg" onClick={() => setShowClaimModal(false)}>
-                    Close
-                  </button>
+              <div>
+                <label className="form-label">Handover Verification Notes / Remarks</label>
+                <textarea
+                  className="form-control"
+                  rows="2"
+                  value={handoverNotes}
+                  onChange={(e) => setHandoverNotes(e.target.value)}
+                  placeholder="e.g. Verified student ID card, student signed physical handover form at help desk..."
+                />
+              </div>
+
+              <div style={{ marginTop: 'var(--space-sm)', display: 'flex', gap: 'var(--space-md)' }}>
+                <button type="submit" className="btn btn--primary btn--lg" style={{ flex: 1 }} disabled={submittingHandover}>
+                  <Upload size={18} /> {submittingHandover ? 'Saving Details & Form Proof…' : 'Save Proof & Complete Handover'}
+                </button>
+                <button type="button" className="btn btn--secondary btn--lg" onClick={() => setShowHandoverModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SUPERADMIN FULL ITEM EDIT MODAL */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(6px)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '640px', background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: 'var(--space-2xl)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
+            <button
+              onClick={() => setShowEditModal(false)}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: 'var(--space-lg)' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: '#FAF5FF', color: '#7E22CE', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <Edit3 size={26} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>SuperAdmin Website Item Editor</h2>
+                <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)' }}>Modify any metadata field, serial numbers, reporters, or photos directly on the website.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Serial Number <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editSerial}
+                    onChange={(e) => setEditSerial(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Unique UID <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editUid}
+                    onChange={(e) => setEditUid(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
-            )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Category <span className="required">*</span></label>
+                  <select
+                    className="form-control"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Location Found <span className="required">*</span></label>
+                  <select
+                    className="form-control"
+                    value={editLocationFound}
+                    onChange={(e) => setEditLocationFound(e.target.value)}
+                  >
+                    {LOCATIONS.map((l) => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Who Found It</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Campus Staff / Security"
+                    value={editWhoFound}
+                    onChange={(e) => setEditWhoFound(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Status <span className="required">*</span></label>
+                  <select
+                    className="form-control"
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Reported By Name <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editStudentName}
+                    onChange={(e) => setEditStudentName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Reported By Reg No <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editRegNo}
+                    onChange={(e) => setEditRegNo(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">Item Description</label>
+                <textarea
+                  className="form-control"
+                  rows="2"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Replace Item Photo (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="form-control"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setEditImageFile(file);
+                      setEditImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </div>
+
+              {editImagePreview && (
+                <div style={{ border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-md)', padding: '8px', textAlign: 'center', background: '#0F172A' }}>
+                  <img src={editImagePreview} alt="Item Preview" style={{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain' }} />
+                </div>
+              )}
+
+              <div style={{ marginTop: 'var(--space-md)', display: 'flex', gap: 'var(--space-md)' }}>
+                <button type="submit" className="btn btn--primary btn--lg" style={{ flex: 1, background: 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)', borderColor: '#A855F7' }} disabled={submittingEdit}>
+                  <Save size={18} /> {submittingEdit ? 'Saving Updates…' : 'Save Full Website Overrides'}
+                </button>
+                <button type="button" className="btn btn--secondary btn--lg" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* BEAUTIFUL CUSTOM POPUP DIALOGUE BOX FOR DONATE ITEM */}
+      {showDonateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)', zIndex: 99999, display: 'grid', placeItems: 'center', padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '540px', background: '#FFFFFF', borderRadius: '24px', padding: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', position: 'relative', border: '2px solid #E2E8F0' }}>
+            <button
+              onClick={() => setShowDonateModal(false)}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#64748B' }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: isEligibleForDonate ? '#F3E8FF' : '#FEF3C7', color: isEligibleForDonate ? '#7E22CE' : '#D97706', display: 'grid', placeItems: 'center', margin: '0 auto 14px', border: `3px solid ${isEligibleForDonate ? '#E9D5FF' : '#FDE68A'}` }}>
+                {isEligibleForDonate ? <HeartHandshake size={32} /> : <AlertCircle size={32} />}
+              </div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--clr-text)', margin: 0 }}>
+                {isEligibleForDonate ? 'Donate Item to Charity' : 'Collection Period Window Active'}
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: 'var(--clr-text-muted)', marginTop: '4px' }}>
+                Campus Lost &amp; Found 30-Day Retention Policy
+              </p>
+            </div>
+
+            {/* PROMINENT DIALOGUE MESSAGE BOX */}
+            <div style={{ background: isEligibleForDonate ? '#F3E8FF' : '#FFFBEB', border: `2px solid ${isEligibleForDonate ? '#C084FC' : '#F59E0B'}`, padding: '18px 20px', borderRadius: '16px', marginBottom: '20px', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: isEligibleForDonate ? '#6B21A8' : '#92400E', lineHeight: 1.45 }}>
+                {isEligibleForDonate
+                  ? 'The 1-month collection window has elapsed. Confirm donating this item to charity?'
+                  : `Item cannot be donated yet. The 1-month collection period window has ${daysRemaining} day(s) remaining.`}
+              </p>
+            </div>
+
+            {/* ITEM RETENTION TIMELINE CARD */}
+            <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '14px', border: '1px solid #E2E8F0', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                <span>#{item.serial_number || 'LF-10001'} — {item.category}</span>
+                <span className={`badge ${isEligibleForDonate ? 'badge--donated' : 'badge--pending'}`}>
+                  {isEligibleForDonate ? 'Eligible for Donation' : `${daysRemaining} Days Left`}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '0 0 10px 0' }}>
+                Found at {item.location_found} on {formatDate(item.date_found)} ({daysElapsed} days in inventory)
+              </p>
+
+              {/* Progress Bar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', marginBottom: '4px' }}>
+                <span>Retention Progress</span>
+                <span>{Math.min(100, Math.round((daysElapsed / 30) * 100))}% (30 Days Target)</span>
+              </div>
+              <div style={{ width: '100%', height: '8px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, (daysElapsed / 30) * 100)}%`, height: '100%', background: isEligibleForDonate ? '#8B5CF6' : '#F59E0B', borderRadius: '999px', transition: 'width 0.5s ease' }}></div>
+              </div>
+            </div>
+
+            {/* BUTTON ACTIONS */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {isEligibleForDonate ? (
+                <>
+                  <button
+                    className="btn btn--primary btn--lg"
+                    style={{ flex: 1, background: 'linear-gradient(135deg, #7E22CE 0%, #6B21A8 100%)', borderColor: '#A855F7', justifyContent: 'center' }}
+                    onClick={handleConfirmDonate}
+                    disabled={submittingDonate}
+                  >
+                    <HeartHandshake size={18} /> {submittingDonate ? 'Moving to Donated…' : 'Confirm Donation'}
+                  </button>
+                  <button className="btn btn--secondary btn--lg" style={{ justifyContent: 'center' }} onClick={() => setShowDonateModal(false)}>
+                    Cancel
+                  </button>
+                </>
+              ) : user?.role === 'superadmin' ? (
+                <>
+                  <button
+                    className="btn btn--primary btn--lg"
+                    style={{ flex: 1, background: 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)', borderColor: '#A855F7', justifyContent: 'center' }}
+                    onClick={handleConfirmDonate}
+                    disabled={submittingDonate}
+                  >
+                    <HeartHandshake size={18} /> {submittingDonate ? 'Force Donating…' : '⚡ SuperAdmin Force Donate'}
+                  </button>
+                  <button className="btn btn--secondary btn--lg" style={{ justifyContent: 'center' }} onClick={() => setShowDonateModal(false)}>
+                    OK
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="btn btn--primary btn--lg"
+                  style={{ flex: 1, background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', justifyContent: 'center' }}
+                  onClick={() => setShowDonateModal(false)}
+                >
+                  OK
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

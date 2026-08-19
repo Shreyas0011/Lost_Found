@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
-import { Search, Calendar, MapPin, ArrowRight, Sparkles, RefreshCw, Layers } from 'lucide-react';
+import { Search, Calendar, MapPin, ArrowRight, Sparkles, RefreshCw, Layers, Edit3, Save, X } from 'lucide-react';
+
+const CATEGORIES = [
+  'Electronics', 'Clothing', 'Books', 'ID / Cards',
+  'Accessories', 'Bags', 'Keys', 'Stationery', 'Other',
+];
+
+const LOCATIONS = [
+  'Library', 'Cafeteria', 'Classroom', 'Hostel',
+  'Parking', 'Sports Area', 'Administrative Block', 'Other',
+];
+
+const STATUSES = [
+  'PUBLISHED', 'UNCLAIMED', 'CLAIMED', 'RETURNED', 'EXPIRED', 'DEACTIVATED', 'DONATED'
+];
 
 export default function StudentSearch() {
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -12,7 +28,77 @@ export default function StudentSearch() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  // SuperAdmin Full Item Edit Modal state
+  const [editModalItem, setEditModalItem] = useState(null);
+  const [editSerial, setEditSerial] = useState('');
+  const [editUid, setEditUid] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editWhoFound, setEditWhoFound] = useState('');
+  const [editLocationFound, setEditLocationFound] = useState('');
+  const [editDateFound, setEditDateFound] = useState('');
+  const [editTimeFound, setEditTimeFound] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editStudentName, setEditStudentName] = useState('');
+  const [editRegNo, setEditRegNo] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState('');
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+
   const navigate = useNavigate();
+
+  const openEditModal = (itemObj) => {
+    setEditModalItem(itemObj);
+    setEditSerial(itemObj.serial_number || '');
+    setEditUid(itemObj.uid || '');
+    setEditCategory(itemObj.category || 'Electronics');
+    setEditWhoFound(itemObj.who_found || '');
+    setEditLocationFound(itemObj.location_found || 'Library');
+    setEditDateFound(itemObj.date_found ? new Date(itemObj.date_found).toISOString().split('T')[0] : '');
+    setEditTimeFound(itemObj.time_found || '');
+    setEditDescription(itemObj.description || '');
+    setEditStudentName(itemObj.student_name || '');
+    setEditRegNo(itemObj.registration_number || '');
+    setEditStatus(itemObj.status || 'PUBLISHED');
+    setEditNotes(itemObj.handover_notes || '');
+    setEditImageFile(null);
+    setEditImagePreview(itemObj.image_url ? getImageUrl(itemObj.image_url) : '');
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingEdit(true);
+    try {
+      const formData = new FormData();
+      formData.append('serial_number', editSerial);
+      formData.append('uid', editUid);
+      formData.append('category', editCategory);
+      formData.append('who_found', editWhoFound);
+      formData.append('location_found', editLocationFound);
+      if (editDateFound) formData.append('date_found', editDateFound);
+      formData.append('time_found', editTimeFound);
+      formData.append('description', editDescription);
+      formData.append('student_name', editStudentName);
+      formData.append('registration_number', editRegNo);
+      formData.append('status', editStatus);
+      formData.append('handover_notes', editNotes);
+      if (editImageFile) formData.append('image', editImageFile);
+
+      await apiFetch(`/items/admin/${editModalItem._id || editModalItem.id}/edit`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      alert('Item details updated successfully on website by SuperAdmin!');
+      setEditModalItem(null);
+      fetchItems();
+    } catch (err) {
+      alert(err.message || 'Failed to update item details.');
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -173,7 +259,7 @@ export default function StudentSearch() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <p className="item-card__title" style={{ margin: 0 }}>{title}</p>
                   </div>
-                  {item.who_found && (
+                  {(user?.role === 'admin' || user?.role === 'superadmin') && item.who_found && (
                     <p style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', marginBottom: '8px' }}>
                       Found by: <strong>{item.who_found}</strong>
                     </p>
@@ -183,16 +269,195 @@ export default function StudentSearch() {
                     <span><Calendar size={15} color="var(--clr-text-dim)" /> Found {formatDate(item.date_found)}</span>
                   </div>
 
-                  <div style={{ marginTop: 'auto', paddingTop: 'var(--space-sm)' }}>
-                    <button className="btn btn--primary btn--sm btn--full" style={{ justifyContent: 'space-between' }}>
+                  <div style={{ marginTop: 'auto', paddingTop: 'var(--space-sm)', display: 'flex', gap: '8px' }}>
+                    <button className="btn btn--primary btn--sm" style={{ flex: 1, justifyContent: 'space-between' }}>
                       <span>View &amp; Claim Item</span>
                       <ArrowRight size={14} />
                     </button>
+                    {user?.role === 'superadmin' && (
+                      <button
+                        type="button"
+                        className="btn btn--secondary btn--sm"
+                        style={{ background: '#FAF5FF', color: '#7E22CE', borderColor: '#E9D5FF', fontWeight: 800, whiteSpace: 'nowrap' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditModal(item);
+                        }}
+                        title="SuperAdmin Edit Fields"
+                      >
+                        <Edit3 size={14} /> Edit
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* SUPERADMIN FULL ITEM EDIT MODAL */}
+      {editModalItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(6px)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '640px', background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: 'var(--space-2xl)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
+            <button
+              onClick={() => setEditModalItem(null)}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: 'var(--space-lg)' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: '#FAF5FF', color: '#7E22CE', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <Edit3 size={26} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>SuperAdmin Website Item Editor</h2>
+                <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)' }}>Modify any metadata field, serial numbers, reporters, or photos directly on the website.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Serial Number <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editSerial}
+                    onChange={(e) => setEditSerial(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Unique UID <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editUid}
+                    onChange={(e) => setEditUid(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Category <span className="required">*</span></label>
+                  <select
+                    className="form-control"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Location Found <span className="required">*</span></label>
+                  <select
+                    className="form-control"
+                    value={editLocationFound}
+                    onChange={(e) => setEditLocationFound(e.target.value)}
+                  >
+                    {LOCATIONS.map((l) => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Who Found It</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Campus Staff / Security"
+                    value={editWhoFound}
+                    onChange={(e) => setEditWhoFound(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Status <span className="required">*</span></label>
+                  <select
+                    className="form-control"
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label className="form-label">Reported By Name <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editStudentName}
+                    onChange={(e) => setEditStudentName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Reported By Reg No <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editRegNo}
+                    onChange={(e) => setEditRegNo(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">Item Description</label>
+                <textarea
+                  className="form-control"
+                  rows="2"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Replace Item Photo (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="form-control"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setEditImageFile(file);
+                      setEditImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </div>
+
+              {editImagePreview && (
+                <div style={{ border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-md)', padding: '8px', textAlign: 'center', background: '#0F172A' }}>
+                  <img src={editImagePreview} alt="Item Preview" style={{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain' }} />
+                </div>
+              )}
+
+              <div style={{ marginTop: 'var(--space-md)', display: 'flex', gap: 'var(--space-md)' }}>
+                <button type="submit" className="btn btn--primary btn--lg" style={{ flex: 1, background: 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)', borderColor: '#A855F7' }} disabled={submittingEdit}>
+                  <Save size={18} /> {submittingEdit ? 'Saving Updates…' : 'Save Full Website Overrides'}
+                </button>
+                <button type="button" className="btn btn--secondary btn--lg" onClick={() => setEditModalItem(null)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </main>

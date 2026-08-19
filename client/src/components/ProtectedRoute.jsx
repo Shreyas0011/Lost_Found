@@ -16,8 +16,16 @@ export default function ProtectedRoute({ role, children }) {
     );
   }
 
-  if (!user || (role && user.role !== role)) {
-    const fallbackPath = role === 'admin' ? '/admin/login' : '/';
+  const hasPermission = () => {
+    if (!user) return false;
+    if (!role) return true;
+    if (Array.isArray(role)) return role.includes(user.role);
+    if (role === 'admin') return user.role === 'admin' || user.role === 'superadmin';
+    return user.role === role;
+  };
+
+  if (!hasPermission()) {
+    const fallbackPath = (role === 'admin' || role === 'superadmin') ? '/admin/login' : '/';
     return <Navigate to={fallbackPath} replace />;
   }
 

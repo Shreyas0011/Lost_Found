@@ -14,8 +14,7 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminItems from './pages/AdminItems';
 import AdminAddItem from './pages/AdminAddItem';
-import AdminRequests from './pages/AdminRequests';
-import AdminChat from './pages/AdminChat';
+import SuperAdminPortal from './pages/SuperAdminPortal';
 
 export default function App() {
   return (
@@ -62,6 +61,14 @@ export default function App() {
             }
           />
           <Route
+            path="/admin/superadmin"
+            element={
+              <ProtectedRoute role="superadmin">
+                <SuperAdminPortal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/add-item"
             element={
               <ProtectedRoute role="admin">
@@ -77,22 +84,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/admin/requests"
-            element={
-              <ProtectedRoute role="admin">
-                <AdminRequests />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/chat"
-            element={
-              <ProtectedRoute role="admin">
-                <AdminChat />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/admin/requests" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/chat" element={<Navigate to="/admin/dashboard" replace />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
