@@ -1,7 +1,7 @@
 {
   "name": "lost-and-found-server",
   "version": "1.0.0",
-  "description": "Lost & Found module backend — Node.js + Express + MongoDB",
+  "description": "Lost & Found module backend — Node.js + Express + Supabase PostgreSQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
