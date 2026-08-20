@@ -2,16 +2,13 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
-const mongoose = require('mongoose');
-const Student = require('../models/Student');
+const SupabaseStudentRepository = require('../repositories/supabaseStudentRepository');
 
-const connectDB = require('../config/db');
-
+const studentRepo = new SupabaseStudentRepository();
 const CSV_PATH = path.join(__dirname, 'students.csv');
 
 async function seed() {
-  await connectDB();
-
+  console.log('🌱 Seeding Students into Supabase PostgreSQL Database...');
   const students = [];
 
   fs.createReadStream(CSV_PATH)
@@ -40,11 +37,7 @@ async function seed() {
           continue;
         }
         try {
-          await Student.updateOne(
-            { registration_number: s.registration_number },
-            { $setOnInsert: s },
-            { upsert: true }
-          );
+          await studentRepo.upsertStudent(s);
           inserted++;
         } catch (err) {
           console.error(`❌ Error inserting ${s.registration_number}:`, err.message);
@@ -53,7 +46,7 @@ async function seed() {
       }
 
       console.log(`✅ Seeding complete — ${inserted} inserted/updated, ${skipped} skipped`);
-      await mongoose.disconnect();
+      process.exit(0);
     });
 }
 

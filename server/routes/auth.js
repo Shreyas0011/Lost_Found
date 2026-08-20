@@ -1,7 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const Student = require('../models/Student');
+const SupabaseStudentRepository = require('../repositories/supabaseStudentRepository');
 
+const studentRepo = new SupabaseStudentRepository();
 const router = express.Router();
 
 // POST /api/auth/verify — Student verification (no password, just reg_number + name)
@@ -13,10 +14,7 @@ router.post('/verify', async (req, res) => {
       return res.status(400).json({ error: 'Registration number and name are required.' });
     }
 
-    const student = await Student.findOne({
-      registration_number: registration_number.trim().toUpperCase(),
-      status: 'active',
-    });
+    const student = await studentRepo.findByRegistrationNumber(registration_number);
 
     if (!student) {
       return res.status(404).json({ error: 'Student not found. Please check your registration number.' });
@@ -32,7 +30,7 @@ router.post('/verify', async (req, res) => {
 
     const token = jwt.sign(
       {
-        id: student._id,
+        id: student.id,
         registration_number: student.registration_number,
         name: student.name,
         role: 'student',
@@ -44,7 +42,7 @@ router.post('/verify', async (req, res) => {
     return res.json({
       token,
       student: {
-        id: student._id,
+        id: student.id,
         registration_number: student.registration_number,
         name: student.name,
         email: student.email,

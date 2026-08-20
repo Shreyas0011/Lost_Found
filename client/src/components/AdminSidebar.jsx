@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Package, PlusCircle, LogOut, Sparkles, Ban, HeartHandshake, ShieldAlert, Zap } from 'lucide-react';
+import { LayoutDashboard, Package, PlusCircle, LogOut, Sparkles, Ban, HeartHandshake, ShieldAlert, Zap, FileCheck } from 'lucide-react';
 
 export default function AdminSidebar() {
   const { user, logout } = useAuth();
@@ -44,6 +44,10 @@ export default function AdminSidebar() {
         <Link to="/admin/add-item" className={location.pathname === '/admin/add-item' ? 'active' : ''}>
           <span className="nav-icon"><PlusCircle size={18} /></span>
           Upload Found Item
+        </Link>
+        <Link to="/admin/requests" className={location.pathname === '/admin/requests' ? 'active' : ''}>
+          <span className="nav-icon"><FileCheck size={18} /></span>
+          Claims &amp; Form Responses
         </Link>
         <Link to="/admin/items" className={location.pathname === '/admin/items' && !isDeactivated && !isDonated ? 'active' : ''}>
           <span className="nav-icon"><Package size={18} /></span>

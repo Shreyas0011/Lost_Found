@@ -1,8 +1,10 @@
 const express = require('express');
-const OwnershipRequest = require('../models/OwnershipRequest');
-const Item = require('../models/Item');
+const SupabaseClaimRepository = require('../repositories/supabaseClaimRepository');
+const SupabaseItemRepository = require('../repositories/supabaseItemRepository');
 const { authenticateStudent, authenticateAdmin } = require('../middleware/auth');
 
+const claimRepo = new SupabaseClaimRepository();
+const itemRepo = new SupabaseItemRepository();
 const router = express.Router();
 
 // POST /api/claims — Create ownership request (student)
@@ -14,28 +16,24 @@ router.post('/', authenticateStudent, async (req, res) => {
       return res.status(400).json({ error: 'item_id and message are required.' });
     }
 
-    const item = await Item.findById(item_id);
+    const item = await itemRepo.getItemById(item_id);
     if (!item || item.status !== 'PUBLISHED') {
       return res.status(404).json({ error: 'Item not found or not available for claims.' });
     }
 
     // Check for duplicate claim by same student
-    const existing = await OwnershipRequest.findOne({
-      item_id,
-      student_id: req.student.id,
-    });
+    const existing = await claimRepo.findClaimByItemAndStudent(item_id, req.student.id);
     if (existing) {
       return res.status(409).json({ error: 'You have already submitted a claim for this item.' });
     }
 
-    const claim = new OwnershipRequest({
+    const claim = await claimRepo.createClaim({
       item_id,
       student_id: req.student.id,
       message,
       status: 'PENDING',
     });
 
-    await claim.save();
     return res.status(201).json({ message: 'Ownership request submitted.', claim });
   } catch (err) {
     console.error('Create claim error:', err);
@@ -46,9 +44,7 @@ router.post('/', authenticateStudent, async (req, res) => {
 // GET /api/claims/my — Student's own claims
 router.get('/my', authenticateStudent, async (req, res) => {
   try {
-    const claims = await OwnershipRequest.find({ student_id: req.student.id })
-      .populate('item_id', 'category brand color location_found date_found image_url status')
-      .sort({ createdAt: -1 });
+    const claims = await claimRepo.getClaimsByStudent(req.student.id);
     return res.json({ claims });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch claims.' });
@@ -58,14 +54,13 @@ router.get('/my', authenticateStudent, async (req, res) => {
 // GET /api/claims/:id — Single claim detail (student or admin)
 router.get('/:id', authenticateStudent, async (req, res) => {
   try {
-    const claim = await OwnershipRequest.findById(req.params.id)
-      .populate('item_id')
-      .populate('student_id', 'name registration_number email class section');
+    const claim = await claimRepo.getClaimById(req.params.id, true);
 
     if (!claim) return res.status(404).json({ error: 'Claim not found.' });
 
     // Student can only view their own claim
-    if (claim.student_id._id.toString() !== req.student.id) {
+    const studentIdStr = typeof claim.student_id === 'object' ? claim.student_id.id : claim.student_id;
+    if (studentIdStr !== req.student.id) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
@@ -79,22 +74,25 @@ router.get('/:id', authenticateStudent, async (req, res) => {
 router.post('/:id/inperson', authenticateStudent, async (req, res) => {
   try {
     const { preferred_date, preferred_time, note } = req.body;
-    const claim = await OwnershipRequest.findById(req.params.id);
+    const claim = await claimRepo.getClaimById(req.params.id, false);
 
     if (!claim) return res.status(404).json({ error: 'Claim not found.' });
-    if (claim.student_id.toString() !== req.student.id) {
+
+    const studentIdStr = typeof claim.student_id === 'object' ? claim.student_id.id : claim.student_id;
+    if (studentIdStr !== req.student.id) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
-    claim.in_person_request = {
-      preferred_date: new Date(preferred_date),
-      preferred_time,
-      note: note || '',
-      status: 'REQUESTED',
-    };
+    const updatedClaim = await claimRepo.updateClaim(req.params.id, {
+      in_person_request: {
+        preferred_date: new Date(preferred_date),
+        preferred_time: preferred_time || '',
+        note: note || '',
+        status: 'REQUESTED',
+      },
+    });
 
-    await claim.save();
-    return res.json({ message: 'In-person verification requested.', claim });
+    return res.json({ message: 'In-person verification requested.', claim: updatedClaim });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to request in-person verification.' });
   }
@@ -109,11 +107,7 @@ router.get('/admin/all', authenticateAdmin, async (req, res) => {
     const filter = {};
     if (status) filter.status = status;
 
-    const claims = await OwnershipRequest.find(filter)
-      .populate('item_id', 'category brand color location_found date_found image_url status')
-      .populate('student_id', 'name registration_number email class section')
-      .sort({ createdAt: -1 });
-
+    const claims = await claimRepo.getAllClaims(filter);
     return res.json({ claims });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch claims.' });
@@ -123,9 +117,7 @@ router.get('/admin/all', authenticateAdmin, async (req, res) => {
 // GET /api/claims/admin/:id — Single claim for admin
 router.get('/admin/:id', authenticateAdmin, async (req, res) => {
   try {
-    const claim = await OwnershipRequest.findById(req.params.id)
-      .populate('item_id')
-      .populate('student_id', 'name registration_number email class section');
+    const claim = await claimRepo.getClaimById(req.params.id, true);
     if (!claim) return res.status(404).json({ error: 'Claim not found.' });
     return res.json({ claim });
   } catch (err) {
@@ -141,18 +133,18 @@ router.patch('/admin/:id/status', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Status must be APPROVED or REJECTED.' });
     }
 
-    const claim = await OwnershipRequest.findById(req.params.id);
+    const claim = await claimRepo.getClaimById(req.params.id, false);
     if (!claim) return res.status(404).json({ error: 'Claim not found.' });
 
-    claim.status = status;
-    await claim.save();
+    const updatedClaim = await claimRepo.updateClaim(req.params.id, { status });
 
     // If approved, update item status to CLAIMED
     if (status === 'APPROVED') {
-      await Item.findByIdAndUpdate(claim.item_id, { status: 'CLAIMED' });
+      const itemIdStr = typeof claim.item_id === 'object' ? claim.item_id.id : claim.item_id;
+      await itemRepo.updateItem(itemIdStr, { status: 'CLAIMED' });
     }
 
-    return res.json({ message: `Claim ${status.toLowerCase()}.`, claim });
+    return res.json({ message: `Claim ${status.toLowerCase()}.`, claim: updatedClaim });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to update claim status.' });
   }
@@ -167,13 +159,17 @@ router.patch('/admin/:id/meeting', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid meeting status.' });
     }
 
-    const claim = await OwnershipRequest.findById(req.params.id);
+    const claim = await claimRepo.getClaimById(req.params.id, false);
     if (!claim) return res.status(404).json({ error: 'Claim not found.' });
 
-    claim.in_person_request.status = status;
-    await claim.save();
+    const updatedClaim = await claimRepo.updateClaim(req.params.id, {
+      in_person_request: {
+        ...claim.in_person_request,
+        status,
+      },
+    });
 
-    return res.json({ message: 'Meeting status updated.', claim });
+    return res.json({ message: 'Meeting status updated.', claim: updatedClaim });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to update meeting status.' });
   }

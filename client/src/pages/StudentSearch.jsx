@@ -248,7 +248,7 @@ export default function StudentSearch() {
                     {icon} {item.category}
                   </div>
                   {item.serial_number && (
-                    <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: 'var(--radius-full)', letterSpacing: '0.05em', display: 'flex', gap: '6px' }}>
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(15, 23, 42, 0.82)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: 'var(--radius-full)', letterSpacing: '0.04em', display: 'flex', gap: '4px' }}>
                       <span>#{item.serial_number}</span>
                       {item.uid && <span style={{ opacity: 0.85, fontFamily: 'monospace' }}>| {item.uid}</span>}
                     </div>
@@ -274,20 +274,6 @@ export default function StudentSearch() {
                       <span>View &amp; Claim Item</span>
                       <ArrowRight size={14} />
                     </button>
-                    {user?.role === 'superadmin' && (
-                      <button
-                        type="button"
-                        className="btn btn--secondary btn--sm"
-                        style={{ background: '#FAF5FF', color: '#7E22CE', borderColor: '#E9D5FF', fontWeight: 800, whiteSpace: 'nowrap' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditModal(item);
-                        }}
-                        title="SuperAdmin Edit Fields"
-                      >
-                        <Edit3 size={14} /> Edit
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>

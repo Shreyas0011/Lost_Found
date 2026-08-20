@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch, formatDate } from '../services/api';
+import { Link } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
+import { apiFetch, formatDate, getImageUrl } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
-import { ShieldCheck, Plus, Trash2, UserCheck, RefreshCw, Key, Settings, Server, Database, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Plus, Trash2, UserCheck, RefreshCw, Key, Settings, Server, Database, CheckCircle, AlertTriangle, FileCheck, ExternalLink } from 'lucide-react';
 
 export default function SuperAdminPortal() {
+  const { toast } = useToast();
   const [admins, setAdmins] = useState([
     { id: '1', username: 'admin', role: 'admin', created_at: new Date().toISOString(), status: 'Active' },
     { id: '2', username: 'superadmin', role: 'superadmin', created_at: new Date().toISOString(), status: 'Active' },
@@ -11,10 +14,23 @@ export default function SuperAdminPortal() {
   const [newAdminUsername, setNewAdminUsername] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [newAdminRole, setNewAdminRole] = useState('admin');
+  const [claimResponses, setClaimResponses] = useState([]);
   const [systemLog, setSystemLog] = useState([
     { time: new Date().toLocaleTimeString(), text: 'SuperAdmin Control Portal Initialized' },
     { time: new Date().toLocaleTimeString(), text: 'Database connection verified: 100% healthy' },
   ]);
+
+  useEffect(() => {
+    const loadClaimResponses = async () => {
+      try {
+        const data = await apiFetch('/items/admin/claim-responses');
+        setClaimResponses(data.responses || []);
+      } catch (err) {
+        console.warn('SuperAdmin fetch claim responses:', err.message);
+      }
+    };
+    loadClaimResponses();
+  }, []);
 
   const handleCreateAdmin = (e) => {
     e.preventDefault();
@@ -36,12 +52,12 @@ export default function SuperAdminPortal() {
 
     setNewAdminUsername('');
     setNewAdminPassword('');
-    alert(`New ${newAdminRole.toUpperCase()} account '${newAdmin.username}' created successfully!`);
+    toast.success(`New ${newAdminRole.toUpperCase()} account '${newAdmin.username}' created successfully!`);
   };
 
   const handleDeleteAdmin = (id, username) => {
     if (username === 'superadmin') {
-      alert('Root SuperAdmin account cannot be deleted.');
+      toast.error('Root SuperAdmin account cannot be deleted.');
       return;
     }
     if (!window.confirm(`Are you sure you want to revoke admin privileges for '${username}'?`)) return;
@@ -59,7 +75,7 @@ export default function SuperAdminPortal() {
       { time: new Date().toLocaleTimeString(), text: 'System Override Triggered: Purged deactivated item records' },
       ...prev,
     ]);
-    alert('System Purge Complete. Deactivated records cleaned up.');
+    toast.success('System Purge Complete. Deactivated records cleaned up.');
   };
 
   return (
@@ -182,6 +198,43 @@ export default function SuperAdminPortal() {
           </div>
         </div>
 
+        {/* CLAIM FORM RESPONSES AUDIT OVERVIEW */}
+        <div className="card" style={{ border: '1.5px solid #818CF8', marginBottom: 'var(--space-2xl)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#3730A3', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileCheck size={22} color="#4F46E5" /> Submitted Claim Form Responses ({claimResponses.length})
+            </h2>
+            <Link to="/admin/requests" className="btn btn--secondary btn--sm" style={{ fontWeight: 700 }}>
+              Open Claims Portal <ExternalLink size={14} />
+            </Link>
+          </div>
+          <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)', marginBottom: 'var(--space-md)' }}>
+            All paper forms and student recipient responses logged by campus admins during item claims.
+          </p>
+
+          {claimResponses.length === 0 ? (
+            <div style={{ padding: 'var(--space-md)', background: '#F8FAFC', borderRadius: 'var(--radius-md)', textAlign: 'center', color: '#64748B', fontSize: '0.88rem' }}>
+              No claim form responses recorded yet.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-md)' }}>
+              {claimResponses.slice(0, 4).map((resp) => (
+                <div key={resp._id || resp.id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1E1B4B', marginBottom: '2px' }}>
+                    #{resp.serial_number || 'N/A'} — {resp.category}
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#4338CA', fontWeight: 700 }}>
+                    Student: {resp.handover_student_name || '—'} ({resp.handover_reg_number || 'No Reg #'})
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '4px' }}>
+                    Handover Date: {formatDate(resp.handover_date || resp.updatedAt)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* SYSTEM OVERRIDE TOOLS & AUDIT LOGS */}
         <div className="card" style={{ border: '2px solid #C084FC', background: '#FAF5FF', marginBottom: 'var(--space-2xl)' }}>
           <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#6B21A8', marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -191,7 +244,7 @@ export default function SuperAdminPortal() {
             <button className="btn btn--secondary" style={{ background: '#F3E8FF', color: '#6B21A8', borderColor: '#D8B4FE', fontWeight: 700 }} onClick={handlePurgeDeactivated}>
               <Trash2 size={16} /> Purge Deactivated Archives
             </button>
-            <button className="btn btn--secondary" onClick={() => alert('Database index synchronized successfully.')}>
+            <button className="btn btn--secondary" onClick={() => toast.success('Database index synchronized successfully.')}>
               <RefreshCw size={16} /> Sync Database Indexes
             </button>
           </div>

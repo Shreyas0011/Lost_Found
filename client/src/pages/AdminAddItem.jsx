@@ -22,7 +22,7 @@ export default function AdminAddItem() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
       navigate('/admin/login');
     }
   }, [user, navigate]);
@@ -85,7 +85,7 @@ export default function AdminAddItem() {
     }
   };
 
-  if (!user || user.role !== 'admin') return null;
+  if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) return null;
 
   return (
     <div className="admin-layout">

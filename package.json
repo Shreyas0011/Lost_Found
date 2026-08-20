@@ -11,5 +11,8 @@
     "build": "npm run build --prefix client",
     "dev": "node run-dev.js",
     "seed": "cd server && node seed/seedStudents.js"
+  },
+  "devDependencies": {
+    "supabase": "^2.115.0"
   }
 }

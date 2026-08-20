@@ -1,14 +1,17 @@
 const express = require('express');
-const Item = require('../models/Item');
-const OwnershipRequest = require('../models/OwnershipRequest');
-const OwnershipMessage = require('../models/OwnershipMessage');
+const SupabaseItemRepository = require('../repositories/supabaseItemRepository');
+const SupabaseClaimRepository = require('../repositories/supabaseClaimRepository');
 const { authenticateAdmin } = require('../middleware/auth');
 
+const itemRepo = new SupabaseItemRepository();
+const claimRepo = new SupabaseClaimRepository();
 const router = express.Router();
 
 // GET /api/admin/stats — Dashboard summary stats
 router.get('/stats', authenticateAdmin, async (req, res) => {
   try {
+    const cutoffDate = new Date(Date.now() - 23 * 24 * 60 * 60 * 1000);
+
     const [
       totalItems,
       publishedItems,
@@ -18,22 +21,17 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
       deactivatedItems,
       ownershipRequests,
       pendingRequests,
-      expiringSoon,
+      expiringSoonList,
     ] = await Promise.all([
-      Item.countDocuments(),
-      Item.countDocuments({ status: 'PUBLISHED' }),
-      Item.countDocuments({ status: 'UNCLAIMED' }),
-      Item.countDocuments({ status: 'CLAIMED' }),
-      Item.countDocuments({ status: 'DONATED' }),
-      Item.countDocuments({ status: 'DEACTIVATED' }),
-      OwnershipRequest.countDocuments(),
-      OwnershipRequest.countDocuments({ status: 'PENDING' }),
-      Item.countDocuments({
-        status: 'PUBLISHED',
-        uploaded_at: {
-          $lte: new Date(Date.now() - 23 * 24 * 60 * 60 * 1000), // within 7 days of expiry
-        },
-      }),
+      itemRepo.countItems({}),
+      itemRepo.countItems({ status: 'PUBLISHED' }),
+      itemRepo.countItems({ status: 'UNCLAIMED' }),
+      itemRepo.countItems({ status: 'CLAIMED' }),
+      itemRepo.countItems({ status: 'DONATED' }),
+      itemRepo.countItems({ status: 'DEACTIVATED' }),
+      claimRepo.countClaims({}),
+      claimRepo.countClaims({ status: 'PENDING' }),
+      itemRepo.getExpiringItems(cutoffDate),
     ]);
 
     return res.json({
@@ -45,7 +43,7 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
       deactivatedItems,
       ownershipRequests,
       pendingRequests,
-      expiringSoon,
+      expiringSoon: expiringSoonList.length,
     });
   } catch (err) {
     console.error('Stats error:', err);

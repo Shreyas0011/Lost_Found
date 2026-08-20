@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
 import StatusBadge from '../components/StatusBadge';
@@ -22,6 +23,7 @@ const STATUSES = [
 
 export default function AdminItems() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +50,9 @@ export default function AdminItems() {
   // Custom Delete Modal state
   const [deleteModalItem, setDeleteModalItem] = useState(null);
   const [submittingDelete, setSubmittingDelete] = useState(false);
+
+  // View Response Modal state
+  const [viewResponseModalItem, setViewResponseModalItem] = useState(null);
 
   // Physical Form Modal state
   const [uploadFormModalItem, setUploadFormModalItem] = useState(null);
@@ -144,11 +149,11 @@ export default function AdminItems() {
   const handleHandoverFormSubmit = async (e) => {
     e.preventDefault();
     if (!formStudentName.trim() || !formRegNo.trim()) {
-      alert('Please enter Student Name and Registration/Roll Number.');
+      toast.error('Please enter Student Name and Registration/Roll Number.');
       return;
     }
     if (!formFile && !uploadFormModalItem.handover_form_url) {
-      alert('Please select a scanned/photographed physical handover form file.');
+      toast.error('Please select a scanned/photographed physical handover form file.');
       return;
     }
     setSubmittingForm(true);
@@ -166,11 +171,11 @@ export default function AdminItems() {
         body: formData,
       });
 
-      alert('Physical handover form proof & recipient student details saved successfully!');
+      toast.success('Physical handover form proof & recipient student details saved successfully!');
       setUploadFormModalItem(null);
       fetchItems();
     } catch (err) {
-      alert(err.message || 'Failed to upload physical handover form.');
+      toast.error(err.message || 'Failed to upload physical handover form.');
     } finally {
       setSubmittingForm(false);
     }
@@ -537,55 +542,30 @@ export default function AdminItems() {
                             View
                           </Link>
 
-                          {/* SUPERADMIN FULL ITEM EDIT BUTTON */}
-                          <button
-                            className="btn btn--secondary btn--sm"
-                            style={{ background: '#FAF5FF', color: '#7E22CE', borderColor: '#E9D5FF', fontWeight: 800 }}
-                            onClick={() => openEditModal(item)}
-                            title="Edit all metadata fields of this item"
-                          >
-                            <Edit3 size={14} /> Edit
-                          </button>
-
-                          {/* UPLOAD PHYSICAL HANDOVER FORM BUTTON */}
-                          <button
-                            className="btn btn--secondary btn--sm"
-                            style={
-                              item.handover_form_url
-                                ? { background: '#DCFCE7', color: '#15803D', borderColor: '#86EFAC', fontWeight: 800 }
-                                : { background: '#EEF2FF', color: '#4338CA', borderColor: '#C7D2FE', fontWeight: 800 }
-                            }
-                            onClick={() => openFormUploadModal(item)}
-                            title="Upload physical handover form filled by student"
-                          >
-                            {item.handover_form_url ? <FileCheck size={14} /> : <FileText size={14} />}
-                            {item.handover_form_url ? 'Form Proof' : 'Upload Form'}
-                          </button>
-
-                          {item.status === 'PUBLISHED' && (
+                          {/* CLAIM & RESPONSE ACTION BUTTONS */}
+                          {item.status === 'CLAIMED' || item.handover_form_url || item.handover_student_name ? (
+                            <button
+                              className="btn btn--success btn--sm"
+                              onClick={() => setViewResponseModalItem(item)}
+                              title="View saved claim response & handover form proof"
+                            >
+                              <FileCheck size={14} /> View Response
+                            </button>
+                          ) : (
                             <button
                               className="btn btn--secondary btn--sm"
-                              onClick={() => handleStatusChange(item._id, 'UNCLAIMED')}
-                              title="Mark item as unclaimed"
+                              onClick={() => openFormUploadModal(item)}
+                              title="Claim item, enter student details & upload physical form"
                             >
-                              <Archive size={14} /> Unclaim
+                              <FileText size={14} /> Claim
                             </button>
                           )}
 
                           {item.status !== 'DONATED' && item.status !== 'DEACTIVATED' && (
                             <button
-                              className="btn btn--secondary btn--sm"
-                              style={
-                                (Math.floor((Date.now() - new Date(item.uploaded_at || item.date_found || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) >= 30 || item.status === 'UNCLAIMED' || item.status === 'EXPIRED')
-                                  ? { background: '#F3E8FF', color: '#7E22CE', borderColor: '#E9D5FF', fontWeight: 800 }
-                                  : { opacity: 0.75, background: '#F1F5F9', color: '#475569', borderColor: '#CBD5E1' }
-                              }
+                              className="btn btn--purple btn--sm"
                               onClick={() => handleDonateClick(item)}
-                              title={
-                                (Math.floor((Date.now() - new Date(item.uploaded_at || item.date_found || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) >= 30 || item.status === 'UNCLAIMED' || item.status === 'EXPIRED')
-                                  ? "1-Month collection window elapsed — Click to Donate"
-                                  : `1-Month collection window active (${30 - Math.floor((Date.now() - new Date(item.uploaded_at || item.date_found || Date.now()).getTime()) / (1000 * 60 * 60 * 24))} days remaining)`
-                              }
+                              title="1-Month collection window — Click to Donate"
                             >
                               <HeartHandshake size={14} /> Donate
                             </button>
@@ -627,6 +607,116 @@ export default function AdminItems() {
         )}
       </main>
 
+      {/* VIEW SAVED CLAIM RESPONSE MODAL */}
+      {viewResponseModalItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(6px)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '640px', background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: 'var(--space-2xl)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
+            <button
+              onClick={() => setViewResponseModalItem(null)}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: 'var(--space-lg)' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: '#DCFCE7', color: '#15803D', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <FileCheck size={26} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Saved Claim Form Response</h2>
+                <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)' }}>Verified student recipient details and physical handover document proof.</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <div style={{ background: '#F8FAFC', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--clr-border)' }}>
+                <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--clr-text-muted)', marginBottom: '4px' }}>Item Claimed</p>
+                <p style={{ fontSize: '1rem', fontWeight: 800 }}>
+                  #{viewResponseModalItem.serial_number || 'N/A'} — {viewResponseModalItem.category}
+                </p>
+                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>
+                  Location Found: {viewResponseModalItem.location_found || 'N/A'} | Reported By: {viewResponseModalItem.student_name} ({viewResponseModalItem.registration_number})
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', background: '#EEF2FF', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1.5px solid #C7D2FE' }}>
+                <div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4338CA', textTransform: 'uppercase' }}>Recipient Student Name</span>
+                  <p style={{ fontSize: '1rem', fontWeight: 800, color: '#1E1B4B' }}>{viewResponseModalItem.handover_student_name || 'Not specified'}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4338CA', textTransform: 'uppercase' }}>Registration / Roll No</span>
+                  <p style={{ fontSize: '1rem', fontWeight: 800, color: '#1E1B4B' }}>{viewResponseModalItem.handover_reg_number || 'Not specified'}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4338CA', textTransform: 'uppercase' }}>Phone Number</span>
+                  <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E1B4B' }}>{viewResponseModalItem.handover_phone || '—'}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4338CA', textTransform: 'uppercase' }}>Department / Class</span>
+                  <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E1B4B' }}>{viewResponseModalItem.handover_department || '—'}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4338CA', textTransform: 'uppercase' }}>Claim Date &amp; Time</span>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E1B4B' }}>{formatDate(viewResponseModalItem.handover_date || viewResponseModalItem.updatedAt)}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4338CA', textTransform: 'uppercase' }}>Processed By Admin</span>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E1B4B' }}>{viewResponseModalItem.claimed_by_admin || 'System Admin'}</p>
+                </div>
+              </div>
+
+              {viewResponseModalItem.handover_notes && (
+                <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#D97706', textTransform: 'uppercase' }}>Verification Remarks / Notes</span>
+                  <p style={{ fontSize: '0.9rem', color: '#92400E', marginTop: '4px' }}>{viewResponseModalItem.handover_notes}</p>
+                </div>
+              )}
+
+              <div>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--clr-text-muted)', marginBottom: '8px', display: 'block' }}>Uploaded Physical Handover Form Document</span>
+                {viewResponseModalItem.handover_form_url ? (
+                  <div>
+                    {viewResponseModalItem.handover_form_url.toLowerCase().includes('.pdf') || viewResponseModalItem.handover_form_url.startsWith('data:application/pdf') ? (
+                      <div style={{ border: '1.5px solid #FCA5A5', background: '#FEF2F2', padding: '16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: '#FEE2E2', color: '#DC2626', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                          <FileText size={24} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#991B1B' }}>
+                            Physical Handover Form (PDF Document)
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#B91C1C', fontWeight: 600 }}>
+                            Official scanned paper proof attached
+                          </div>
+                        </div>
+                        <a href={getImageUrl(viewResponseModalItem.handover_form_url)} target="_blank" rel="noreferrer" className="btn btn--primary btn--sm" style={{ textDecoration: 'none' }}>
+                          Open PDF ↗
+                        </a>
+                      </div>
+                    ) : (
+                      <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '280px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
+                        <a href={getImageUrl(viewResponseModalItem.handover_form_url)} target="_blank" rel="noreferrer">
+                          <img src={getImageUrl(viewResponseModalItem.handover_form_url)} alt="Physical Handover Form" style={{ maxHeight: '260px', maxWidth: '100%', objectFit: 'contain' }} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '0.88rem', color: '#94A3B8', fontStyle: 'italic' }}>No physical document attached.</p>
+                )}
+              </div>
+
+              <div style={{ marginTop: 'var(--space-sm)', display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn--primary btn--lg" onClick={() => setViewResponseModalItem(null)}>
+                  Close Response View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PHYSICAL HANDOVER FORM UPLOAD MODAL */}
       {uploadFormModalItem && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(6px)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: '20px' }}>
@@ -643,8 +733,8 @@ export default function AdminItems() {
                 <FileText size={26} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Upload Physical Handover Form &amp; Student Details</h2>
-                <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)' }}>Record recipient student information and upload scanned copy of physical paper form.</p>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Claim Item &amp; Upload Handover Form</h2>
+                <p style={{ fontSize: '0.86rem', color: 'var(--clr-text-muted)' }}>Enter recipient student details and upload scanned/photographed paper form proof.</p>
               </div>
             </div>
 
@@ -726,8 +816,29 @@ export default function AdminItems() {
               </div>
 
               {formFilePreview && (
-                <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '220px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
-                  <img src={formFilePreview} alt="Handover Form Preview" style={{ maxHeight: '200px', maxWidth: '100%', objectFit: 'contain' }} />
+                <div>
+                  {((formFile && (formFile.type.includes('pdf') || formFile.name.endsWith('.pdf'))) || (typeof formFilePreview === 'string' && formFilePreview.toLowerCase().includes('.pdf'))) ? (
+                    <div style={{ border: '1.5px solid #FCA5A5', background: '#FEF2F2', padding: '16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: '#FEE2E2', color: '#DC2626', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                        <FileText size={24} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#991B1B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {formFile ? formFile.name : 'Physical_Handover_Form.pdf'}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#B91C1C', fontWeight: 600 }}>
+                          PDF Document Attached · {formFile ? `${(formFile.size / 1024).toFixed(1)} KB` : 'Attached'}
+                        </div>
+                      </div>
+                      <span className="badge badge--published" style={{ background: '#DCFCE7', color: '#15803D', borderColor: '#86EFAC' }}>
+                        PDF Ready
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '220px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
+                      <img src={formFilePreview} alt="Handover Form Preview" style={{ maxHeight: '200px', maxWidth: '100%', objectFit: 'contain' }} />
+                    </div>
+                  )}
                 </div>
               )}
 

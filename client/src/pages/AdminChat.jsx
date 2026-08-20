@@ -24,7 +24,7 @@ export default function AdminChat() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
       navigate('/admin/login');
       return;
     }
