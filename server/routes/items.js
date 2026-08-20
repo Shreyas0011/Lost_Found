@@ -2,11 +2,12 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const SupabaseItemRepository = require('../repositories/supabaseItemRepository');
-const { authenticateStudent, authenticateAdmin } = require('../middleware/auth');
+const { authenticateStudent, authenticateAdmin, authenticateAny } = require('../middleware/auth');
+const SupabaseStudentRepository = require('../repositories/supabaseStudentRepository');
 const AssetService = require('../services/assetService');
 
 const itemRepo = new SupabaseItemRepository();
+const studentRepo = new SupabaseStudentRepository();
 const assetService = new AssetService();
 const router = express.Router();
 
@@ -78,8 +79,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/items — Submit found item (student)
-router.post('/', authenticateStudent, upload.single('image'), async (req, res) => {
+// POST /api/items — Submit found item (student or admin)
+router.post('/', authenticateAny, upload.single('image'), async (req, res) => {
   try {
     const {
       category, who_found, location_found,
@@ -93,6 +94,26 @@ router.post('/', authenticateStudent, upload.single('image'), async (req, res) =
     const serial_number = `LF-${Math.floor(10000 + Math.random() * 90000)}`;
     const uid = `UID-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
+    const user = req.user || req.admin || req.student || {};
+    let studentId = user.id;
+    let regNumber = user.registration_number || 'ADMIN001';
+    let studentName = user.name || user.username || 'Campus Admin';
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!studentId || !uuidRegex.test(studentId)) {
+      let adminStudent = await studentRepo.findByRegistrationNumber('ADMIN001');
+      if (!adminStudent) {
+        adminStudent = await studentRepo.createStudent({
+          registration_number: 'ADMIN001',
+          name: studentName,
+          email: 'admin@school.edu',
+          class: 'Staff',
+          section: 'Admin',
+        });
+      }
+      studentId = adminStudent.id;
+    }
+
     if (req.file) {
       try {
         const fileBuffer = fs.readFileSync(req.file.path);
@@ -100,7 +121,7 @@ router.post('/', authenticateStudent, upload.single('image'), async (req, res) =
           fileBuffer,
           originalFilename: req.file.originalname,
           mimeType: req.file.mimetype,
-          ownerId: req.student.id,
+          ownerId: studentId,
           entityType: 'item',
           entityId: serial_number,
         });
@@ -119,15 +140,15 @@ router.post('/', authenticateStudent, upload.single('image'), async (req, res) =
       category,
       who_found: who_found || '',
       location_found,
-      date_found: new Date(date_found),
-      time_found,
-      description,
+      date_found: date_found ? new Date(date_found) : new Date(),
+      time_found: time_found || '',
+      description: description || '',
       image_url: imageUrl,
       image_filename: imageFilename,
       asset_id: assetId,
-      submitted_by: req.student.id,
-      registration_number: req.student.registration_number,
-      student_name: req.student.name,
+      submitted_by: studentId,
+      registration_number: regNumber,
+      student_name: studentName,
       status: 'PUBLISHED',
     });
 
