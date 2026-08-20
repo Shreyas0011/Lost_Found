@@ -189,7 +189,11 @@ app.get('*', (req, res) => {
 });
 
 // ─── START ────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`🚀 Supabase PostgreSQL Express Server running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
+    console.log(`🚀 Supabase PostgreSQL Express Server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   CLAIMS: 'lf_mock_claims',
   MESSAGES: 'lf_mock_messages',
   STUDENTS: 'lf_mock_students',
+  FORM_FIELDS: 'lf_mock_form_fields',
 };
 
 const INITIAL_STUDENTS = [
@@ -637,21 +638,80 @@ export async function handleMockApi(endpoint, options = {}) {
     return { message: newMsg };
   }
 
-  // 5. ADMIN DASHBOARD STATS
+  // 5. ADMIN DASHBOARD STATS & FORM FIELDS
   if (path === '/admin/stats') {
     const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
     const claims = getStoredData(STORAGE_KEYS.CLAIMS, INITIAL_CLAIMS);
 
+    const totalItems = items.length;
+    const publishedItems = items.filter((i) => i.status === 'PUBLISHED').length;
+    const unclaimedItems = items.filter((i) => i.status === 'UNCLAIMED' || i.status === 'PUBLISHED').length;
+    const claimedItems = items.filter((i) => i.status === 'CLAIMED').length;
+    const donatedItems = items.filter((i) => i.status === 'DONATED').length;
+    const deactivatedItems = items.filter((i) => i.status === 'DEACTIVATED').length;
+
     return {
-      stats: {
-        totalItems: items.length,
-        pendingItems: items.filter((i) => i.status === 'PENDING').length,
-        publishedItems: items.filter((i) => i.status === 'PUBLISHED').length,
-        returnedItems: items.filter((i) => i.status === 'RETURNED').length,
-        activeClaims: claims.length,
-        pendingClaims: claims.filter((c) => c.status === 'PENDING').length,
-      },
+      totalItems,
+      publishedItems,
+      unclaimedItems,
+      claimedItems,
+      donatedItems,
+      deactivatedItems,
+      ownershipRequests: claims.length,
+      pendingRequests: claims.filter((c) => c.status === 'PENDING').length,
+      expiringSoon: 0,
     };
+  }
+
+  if (path === '/admin/form-fields' && method === 'GET') {
+    const defaultFields = {
+      categories: ['Electronics', 'Clothing', 'Books', 'ID / Cards', 'Accessories', 'Bags', 'Keys', 'Stationery', 'Other'],
+      locations: ['Library', 'Cafeteria', 'Classroom', 'Hostel', 'Parking', 'Sports Area', 'Administrative Block', 'Other'],
+      customFields: [
+        { id: 'cf_1', name: 'Security Locker ID', type: 'text', placeholder: 'e.g. Locker #4B', required: false },
+        { id: 'cf_2', name: 'Found Item Tags', type: 'text', placeholder: 'e.g. #valuable, #fragile', required: false }
+      ]
+    };
+    return getStoredData(STORAGE_KEYS.FORM_FIELDS, defaultFields);
+  }
+
+  if (path === '/admin/form-fields' && method === 'PUT') {
+    setStoredData(STORAGE_KEYS.FORM_FIELDS, body);
+    return { message: 'Form fields updated successfully', formFields: body };
+  }
+
+  if (path.match(/\/items\/admin\/[^/]+\/edit$/) && method === 'PUT') {
+    const id = path.replace('/items/admin/', '').replace('/edit', '');
+    const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+    const idx = items.findIndex((i) => String(i._id || i.id) === String(id));
+    if (idx === -1) throw { status: 404, message: 'Item not found.' };
+
+    items[idx] = {
+      ...items[idx],
+      ...body,
+      updated_at: new Date().toISOString(),
+    };
+    setStoredData(STORAGE_KEYS.ITEMS, items);
+    return { message: 'Item updated successfully.', item: items[idx] };
+  }
+
+  if (path.match(/\/items\/admin\/[^/]+\/handover-form$/) && method === 'POST') {
+    const id = path.replace('/items/admin/', '').replace('/handover-form', '');
+    const items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+    const idx = items.findIndex((i) => String(i._id || i.id) === String(id));
+    if (idx === -1) throw { status: 404, message: 'Item not found.' };
+
+    items[idx] = {
+      ...items[idx],
+      handover_student_name: body.handover_student_name || items[idx].handover_student_name,
+      handover_reg_number: body.handover_reg_number || items[idx].handover_reg_number,
+      handover_phone: body.handover_phone || items[idx].handover_phone,
+      handover_department: body.handover_department || items[idx].handover_department,
+      handover_notes: body.handover_notes || items[idx].handover_notes,
+      handover_form_url: 'https://images.unsplash.com/photo-1568667256549-094345857637?w=800&auto=format&fit=crop&q=80',
+    };
+    setStoredData(STORAGE_KEYS.ITEMS, items);
+    return { message: 'Handover form proof saved.', item: items[idx] };
   }
 
   throw { status: 404, message: `Endpoint ${path} not found.` };

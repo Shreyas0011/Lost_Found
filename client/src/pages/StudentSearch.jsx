@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
+import { apiFetch, formatDate, getCategoryIcon, getImageUrl, getFormFields, DEFAULT_FORM_FIELDS } from '../services/api';
 import { Search, Calendar, MapPin, ArrowRight, Sparkles, RefreshCw, Layers, Edit3, Save, X } from 'lucide-react';
-
-const CATEGORIES = [
-  'Electronics', 'Clothing', 'Books', 'ID / Cards',
-  'Accessories', 'Bags', 'Keys', 'Stationery', 'Other',
-];
-
-const LOCATIONS = [
-  'Library', 'Cafeteria', 'Classroom', 'Hostel',
-  'Parking', 'Sports Area', 'Administrative Block', 'Other',
-];
 
 const STATUSES = [
   'PUBLISHED', 'UNCLAIMED', 'CLAIMED', 'RETURNED', 'EXPIRED', 'DEACTIVATED', 'DONATED'
@@ -27,6 +17,20 @@ export default function StudentSearch() {
   const [location, setLocation] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  const [categories, setCategories] = useState(DEFAULT_FORM_FIELDS.categories);
+  const [locations, setLocations] = useState(DEFAULT_FORM_FIELDS.locations);
+
+  useEffect(() => {
+    async function loadSchema() {
+      const data = await getFormFields();
+      if (data) {
+        if (data.categories) setCategories(data.categories);
+        if (data.locations) setLocations(data.locations);
+      }
+    }
+    loadSchema();
+  }, []);
 
   // SuperAdmin Full Item Edit Modal state
   const [editModalItem, setEditModalItem] = useState(null);
@@ -177,9 +181,9 @@ export default function StudentSearch() {
             <label>Category</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">All Categories</option>
-              <option>Electronics</option><option>Clothing</option><option>Books</option>
-              <option>ID / Cards</option><option>Accessories</option><option>Bags</option>
-              <option>Keys</option><option>Stationery</option><option>Other</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
             </select>
           </div>
 
@@ -187,9 +191,9 @@ export default function StudentSearch() {
             <label>Location Found</label>
             <select value={location} onChange={(e) => setLocation(e.target.value)}>
               <option value="">All Locations</option>
-              <option>Library</option><option>Cafeteria</option><option>Classroom</option>
-              <option>Hostel</option><option>Parking</option><option>Sports Area</option>
-              <option>Administrative Block</option><option>Other</option>
+              {locations.map((loc) => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
             </select>
           </div>
 

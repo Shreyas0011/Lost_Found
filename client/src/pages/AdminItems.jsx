@@ -1,20 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
+import { apiFetch, formatDate, getCategoryIcon, getImageUrl, getFormFields, DEFAULT_FORM_FIELDS } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
 import StatusBadge from '../components/StatusBadge';
 import { Trash2, CheckCircle, RefreshCw, PlusCircle, Filter, ChevronDown, Check, Ban, Sparkles, HeartHandshake, Archive, Tag, FileText, FileCheck, Upload, X, Eye, Edit3, Save, AlertCircle } from 'lucide-react';
-
-const CATEGORIES = [
-  'Electronics', 'Clothing', 'Books', 'ID / Cards',
-  'Accessories', 'Bags', 'Keys', 'Stationery', 'Other',
-];
-
-const LOCATIONS = [
-  'Library', 'Cafeteria', 'Classroom', 'Hostel',
-  'Parking', 'Sports Area', 'Administrative Block', 'Other',
-];
 
 const STATUSES = [
   'PUBLISHED', 'UNCLAIMED', 'CLAIMED', 'RETURNED', 'EXPIRED', 'DEACTIVATED', 'DONATED'
@@ -26,6 +16,20 @@ export default function AdminItems() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const [categories, setCategories] = useState(DEFAULT_FORM_FIELDS.categories);
+  const [locations, setLocations] = useState(DEFAULT_FORM_FIELDS.locations);
+
+  useEffect(() => {
+    async function loadSchema() {
+      const data = await getFormFields();
+      if (data) {
+        if (data.categories) setCategories(data.categories);
+        if (data.locations) setLocations(data.locations);
+      }
+    }
+    loadSchema();
+  }, []);
 
   // Multi-select filter states
   const [selectedStatuses, setSelectedStatuses] = useState(() => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch } from '../services/api';
+import { apiFetch, getFormFields, DEFAULT_FORM_FIELDS } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
 import { Camera, X, UploadCloud, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
@@ -9,12 +9,14 @@ export default function AdminAddItem() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [formSchema, setFormSchema] = useState(DEFAULT_FORM_FIELDS);
   const [category, setCategory] = useState('');
   const [locationFound, setLocationFound] = useState('');
   const [whoFound, setWhoFound] = useState('');
   const [dateFound, setDateFound] = useState(new Date().toISOString().split('T')[0]);
   const [timeFound, setTimeFound] = useState('');
   const [description, setDescription] = useState('');
+  const [customValues, setCustomValues] = useState({});
 
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
@@ -22,10 +24,18 @@ export default function AdminAddItem() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
       navigate('/admin/login');
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    async function fetchSchema() {
+      const data = await getFormFields();
+      if (data) setFormSchema(data);
+    }
+    fetchSchema();
+  }, []);
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
@@ -42,6 +52,10 @@ export default function AdminAddItem() {
   const removeFile = () => {
     setFile(null);
     setPreview('');
+  };
+
+  const handleCustomChange = (fieldId, val) => {
+    setCustomValues((prev) => ({ ...prev, [fieldId]: val }));
   };
 
   const handleSubmit = async (e) => {
@@ -62,6 +76,9 @@ export default function AdminAddItem() {
       formData.append('date_found', dateFound);
       formData.append('time_found', timeFound);
       formData.append('description', description);
+      if (Object.keys(customValues).length > 0) {
+        formData.append('custom_fields', JSON.stringify(customValues));
+      }
       if (file) formData.append('image', file);
 
       const res = await apiFetch('/items', {
@@ -70,8 +87,9 @@ export default function AdminAddItem() {
       });
 
       // Auto-publish item so students can view & claim it immediately
-      if (res?.item?._id) {
-        await apiFetch(`/items/admin/${res.item._id}/status`, {
+      if (res?.item?._id || res?.item?.id) {
+        const itemId = res.item._id || res.item.id;
+        await apiFetch(`/items/admin/${itemId}/status`, {
           method: 'PATCH',
           body: { status: 'PUBLISHED' },
         });
@@ -85,7 +103,7 @@ export default function AdminAddItem() {
     }
   };
 
-  if (!user || user.role !== 'admin') return null;
+  if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) return null;
 
   return (
     <div className="admin-layout">
@@ -138,9 +156,9 @@ export default function AdminAddItem() {
                   <label className="form-label">Category <span className="required">*</span></label>
                   <select className="form-control" value={category} onChange={(e) => setCategory(e.target.value)} required>
                     <option value="">Select category</option>
-                    <option>Electronics</option><option>Clothing</option><option>Books</option>
-                    <option>ID / Cards</option><option>Accessories</option><option>Bags</option>
-                    <option>Keys</option><option>Stationery</option><option>Other</option>
+                    {(formSchema.categories || []).map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -148,9 +166,9 @@ export default function AdminAddItem() {
                   <label className="form-label">Location Found <span className="required">*</span></label>
                   <select className="form-control" value={locationFound} onChange={(e) => setLocationFound(e.target.value)} required>
                     <option value="">Select location</option>
-                    <option>Library</option><option>Cafeteria</option><option>Classroom</option>
-                    <option>Hostel</option><option>Parking</option><option>Sports Area</option>
-                    <option>Administrative Block</option><option>Other</option>
+                    {(formSchema.locations || []).map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -176,6 +194,32 @@ export default function AdminAddItem() {
                   <input className="form-control" type="time" value={timeFound} onChange={(e) => setTimeFound(e.target.value)} />
                 </div>
               </div>
+
+              {/* DYNAMIC SUPERADMIN CUSTOM FIELDS */}
+              {(formSchema.customFields || []).length > 0 && (
+                <div style={{ background: '#FAF5FF', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid #E9D5FF' }}>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6B21A8', marginBottom: 'var(--space-sm)' }}>
+                    ⚡ SuperAdmin Configured Custom Fields
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-md)' }}>
+                    {formSchema.customFields.map((field) => (
+                      <div key={field.id} className="form-group">
+                        <label className="form-label">
+                          {field.name} {field.required && <span className="required">*</span>}
+                        </label>
+                        <input
+                          type={field.type || 'text'}
+                          className="form-control"
+                          placeholder={field.placeholder || ''}
+                          value={customValues[field.id] || ''}
+                          onChange={(e) => handleCustomChange(field.id, e.target.value)}
+                          required={field.required}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Description / Remarks</label>
@@ -209,3 +253,4 @@ export default function AdminAddItem() {
     </div>
   );
 }
+
