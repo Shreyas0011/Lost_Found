@@ -96,30 +96,6 @@ const INITIAL_ITEMS = [
     student_name: 'Kabir Mehta',
     uploaded_at: '2026-08-18T09:15:00.000Z',
   },
-  {
-    _id: 'item_106',
-    serial_number: 'LF-10006',
-    uid: 'UID-4D0E3B89',
-    category: 'Books',
-    who_found: 'Hostel Warden',
-    location_found: 'Block B Study Hall',
-    date_found: '2026-08-12T00:00:00.000Z',
-    time_found: '18:00',
-    description: 'Advanced Data Structures & Algorithms textbook with hardcover.',
-    image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=80',
-    status: 'CLAIMED',
-    registration_number: 'REG003',
-    student_name: 'Rohan Verma',
-    uploaded_at: '2026-08-12T18:30:00.000Z',
-    handover_form_url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop&q=80',
-    handover_date: '2026-08-19T11:00:00.000Z',
-    handover_notes: 'Physical verification completed. Student presented valid ID card and signed the physical claim form.',
-    handover_student_name: 'Rohan Verma',
-    handover_reg_number: 'REG003',
-    handover_phone: '+91 9876543210',
-    handover_department: 'Computer Science & Engineering',
-    claimed_by_admin: 'admin',
-  },
 ];
 
 const INITIAL_CLAIMS = [
@@ -185,21 +161,15 @@ export function broadcastMockMessage(requestId, messageObj) {
 export function initMockStorage() {
   getStoredData(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
   
-  let storedItems = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
-  const existingMap = new Map((storedItems || []).map((i) => [String(i._id || i.id), i]));
+  const storedItems = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
+  const existingIds = new Set((storedItems || []).map((i) => String(i._id || i.id)));
   let updated = false;
-
   for (const initItem of INITIAL_ITEMS) {
-    const existing = existingMap.get(String(initItem._id));
-    if (!existing) {
+    if (!existingIds.has(String(initItem._id))) {
       storedItems.push(initItem);
-      updated = true;
-    } else if (initItem.status === 'CLAIMED' && existing.status !== 'CLAIMED') {
-      Object.assign(existing, initItem);
       updated = true;
     }
   }
-
   if (updated || !storedItems.length) {
     setStoredData(STORAGE_KEYS.ITEMS, storedItems.length ? storedItems : INITIAL_ITEMS);
   }
@@ -475,7 +445,6 @@ export async function handleMockApi(endpoint, options = {}) {
       formUrl = body.handover_form_url;
     }
 
-    const currentUser = JSON.parse(localStorage.getItem('lf_user') || '{}');
     items[idx].handover_form_url = formUrl;
     items[idx].handover_date = body.handover_date || new Date().toISOString();
     items[idx].handover_notes = body.handover_notes || 'Handed over to student after identity & physical form verification.';
@@ -483,84 +452,10 @@ export async function handleMockApi(endpoint, options = {}) {
     items[idx].handover_reg_number = body.handover_reg_number || body.registration_number || '';
     items[idx].handover_phone = body.handover_phone || body.phone || '';
     items[idx].handover_department = body.handover_department || body.department || '';
-    items[idx].claimed_by_admin = currentUser.username || currentUser.name || 'Admin';
     items[idx].status = 'CLAIMED';
 
     setStoredData(STORAGE_KEYS.ITEMS, items);
-    return { message: 'Claim form details and physical form saved successfully.', item: items[idx] };
-  }
-
-  if (path === '/items/admin/claim-responses' && method === 'GET') {
-    let items = getStoredData(STORAGE_KEYS.ITEMS, INITIAL_ITEMS);
-    let responses = items.filter(
-      (i) => i.status === 'CLAIMED' || Boolean(i.handover_form_url) || Boolean(i.handover_student_name)
-    );
-
-    if (!responses.length) {
-      const sampleClaimedItems = [
-        {
-          _id: 'item_106',
-          serial_number: 'LF-10006',
-          uid: 'UID-4D0E3B89',
-          category: 'Books',
-          who_found: 'Hostel Warden',
-          location_found: 'Block B Study Hall',
-          date_found: '2026-08-12T00:00:00.000Z',
-          time_found: '18:00',
-          description: 'Advanced Data Structures & Algorithms textbook with hardcover.',
-          image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=80',
-          status: 'CLAIMED',
-          registration_number: 'REG003',
-          student_name: 'Rohan Verma',
-          uploaded_at: '2026-08-12T18:30:00.000Z',
-          handover_form_url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop&q=80',
-          handover_date: '2026-08-19T11:00:00.000Z',
-          handover_notes: 'Physical verification completed. Student presented valid ID card and signed the physical claim form at help desk.',
-          handover_student_name: 'Rohan Verma',
-          handover_reg_number: 'REG003',
-          handover_phone: '+91 9876543210',
-          handover_department: 'Computer Science & Engineering',
-          claimed_by_admin: 'admin',
-        },
-        {
-          _id: 'item_107',
-          serial_number: 'LF-10007',
-          uid: 'UID-3A9B2F44',
-          category: 'Electronics',
-          who_found: 'Lab Instructor Swati',
-          location_found: 'Computer Lab 2 Desk 14',
-          date_found: '2026-08-14T00:00:00.000Z',
-          time_found: '11:20',
-          description: 'Wireless Bluetooth Headphones with black charging case.',
-          image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80',
-          status: 'CLAIMED',
-          registration_number: 'REG001',
-          student_name: 'Aarav Sharma',
-          uploaded_at: '2026-08-14T11:30:00.000Z',
-          handover_form_url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop&q=80',
-          handover_date: '2026-08-18T15:45:00.000Z',
-          handover_notes: 'Handover form signed and student roll number verified against university database.',
-          handover_student_name: 'Aarav Sharma',
-          handover_reg_number: 'REG001',
-          handover_phone: '+91 9123456789',
-          handover_department: 'Electronics & Communication',
-          claimed_by_admin: 'superadmin',
-        }
-      ];
-
-      for (const sample of sampleClaimedItems) {
-        const existingIdx = items.findIndex(i => String(i._id || i.id) === String(sample._id));
-        if (existingIdx !== -1) {
-          items[existingIdx] = sample;
-        } else {
-          items.unshift(sample);
-        }
-      }
-      setStoredData(STORAGE_KEYS.ITEMS, items);
-      responses = sampleClaimedItems;
-    }
-
-    return { responses };
+    return { message: 'Physical handover form uploaded successfully.', item: items[idx] };
   }
 
   if (path.match(/\/items\/admin\/[^/]+\/edit/) && (method === 'PUT' || method === 'PATCH')) {

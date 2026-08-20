@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
 import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import { MapPin, Building2, Clock, Calendar, ShieldAlert, ArrowLeft, Ban, CheckCircle, Download, X, FileCheck, FileText, Upload, Eye, User, HeartHandshake, Edit3, Save, AlertCircle } from 'lucide-react';
@@ -24,7 +23,6 @@ export default function ItemDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -142,11 +140,11 @@ export default function ItemDetail() {
   const handleHandoverFormSubmit = async (e) => {
     e.preventDefault();
     if (!handoverStudentName.trim() || !handoverRegNo.trim()) {
-      toast.error('Please enter Student Name and Registration/Roll Number.');
+      alert('Please enter Student Name and Registration/Roll Number.');
       return;
     }
     if (!handoverFile && !item?.handover_form_url) {
-      toast.error('Please select a scanned/photographed physical handover form file.');
+      alert('Please select a scanned/photographed physical handover form file.');
       return;
     }
     setSubmittingHandover(true);
@@ -164,11 +162,11 @@ export default function ItemDetail() {
         body: formData,
       });
 
-      toast.success('Physical handover form proof & recipient student details saved successfully!');
+      alert('Physical handover form proof & recipient student details saved successfully!');
       setShowHandoverModal(false);
       fetchDetail();
     } catch (err) {
-      toast.error(err.message || 'Failed to upload physical handover form.');
+      alert(err.message || 'Failed to upload physical handover form.');
     } finally {
       setSubmittingHandover(false);
     }
@@ -333,16 +331,27 @@ export default function ItemDetail() {
             </div>
           </div>
 
-          {/* Action Buttons: CLAIM & FORM UPLOAD, DONATE, DEACTIVATE (admin/superadmin) */}
+          {/* Action Buttons: EDIT (superadmin), DONATE & DEACTIVATE & UPLOAD FORM (admin/superadmin) */}
           <div style={{ marginTop: 'var(--space-xl)', display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+            {user?.role === 'superadmin' && (
+              <button
+                className="btn btn--primary btn--lg"
+                style={{ flex: 1, minWidth: '180px', justifyContent: 'center', background: 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)', borderColor: '#A855F7', fontWeight: 800 }}
+                onClick={openEditModal}
+                title="Edit all fields of this item directly on website"
+              >
+                <Edit3 size={18} /> Edit Item Fields
+              </button>
+            )}
+
             {(user?.role === 'admin' || user?.role === 'superadmin') && (
               <button
                 className="btn btn--secondary btn--lg"
-                style={{ flex: 1, minWidth: '180px', justifyContent: 'center', background: item.status === 'CLAIMED' ? '#DCFCE7' : '#EEF2FF', color: item.status === 'CLAIMED' ? '#15803D' : '#4338CA', borderColor: item.status === 'CLAIMED' ? '#86EFAC' : '#C7D2FE', fontWeight: 800 }}
+                style={{ flex: 1, minWidth: '180px', justifyContent: 'center', background: '#EEF2FF', color: '#4338CA', borderColor: '#C7D2FE', fontWeight: 800 }}
                 onClick={openHandoverModal}
-                title="Claim item, enter student recipient details & upload physical form"
+                title="Upload physical handover form filled by student"
               >
-                <FileText size={18} /> {item.status === 'CLAIMED' ? 'View/Update Claim Form Proof' : 'Claim Item & Upload Form'}
+                <FileText size={18} /> {item.handover_form_url ? 'Update Form Proof' : 'Upload Physical Form'}
               </button>
             )}
 
@@ -387,29 +396,10 @@ export default function ItemDetail() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-lg)', alignItems: 'center', marginTop: 'var(--space-md)' }}>
-            <div>
-              {item.handover_form_url.toLowerCase().includes('.pdf') || item.handover_form_url.startsWith('data:application/pdf') ? (
-                <div style={{ border: '1.5px solid #FCA5A5', background: '#FEF2F2', padding: '16px', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: '#FEE2E2', color: '#DC2626', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                      <FileText size={22} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#991B1B' }}>Physical Handover Form (PDF)</div>
-                      <div style={{ fontSize: '0.78rem', color: '#B91C1C' }}>Scanned document proof attached</div>
-                    </div>
-                  </div>
-                  <a href={getImageUrl(item.handover_form_url)} target="_blank" rel="noreferrer" className="btn btn--primary btn--sm" style={{ textDecoration: 'none', justifyContent: 'center' }}>
-                    Open PDF Document ↗
-                  </a>
-                </div>
-              ) : (
-                <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '250px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
-                  <a href={getImageUrl(item.handover_form_url)} target="_blank" rel="noreferrer">
-                    <img src={getImageUrl(item.handover_form_url)} alt="Physical Handover Form Proof" style={{ maxHeight: '230px', maxWidth: '100%', objectFit: 'contain' }} />
-                  </a>
-                </div>
-              )}
+            <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '250px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
+              <a href={getImageUrl(item.handover_form_url)} target="_blank" rel="noreferrer">
+                <img src={getImageUrl(item.handover_form_url)} alt="Physical Handover Form Proof" style={{ maxHeight: '230px', maxWidth: '100%', objectFit: 'contain' }} />
+              </a>
             </div>
 
             <div>
@@ -613,29 +603,8 @@ export default function ItemDetail() {
               </div>
 
               {handoverFilePreview && (
-                <div>
-                  {((handoverFile && (handoverFile.type.includes('pdf') || handoverFile.name.endsWith('.pdf'))) || (typeof handoverFilePreview === 'string' && handoverFilePreview.toLowerCase().includes('.pdf'))) ? (
-                    <div style={{ border: '1.5px solid #FCA5A5', background: '#FEF2F2', padding: '16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: '#FEE2E2', color: '#DC2626', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                        <FileText size={24} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#991B1B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {handoverFile ? handoverFile.name : 'Physical_Handover_Form.pdf'}
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: '#B91C1C', fontWeight: 600 }}>
-                          PDF Document Attached · {handoverFile ? `${(handoverFile.size / 1024).toFixed(1)} KB` : 'Attached'}
-                        </div>
-                      </div>
-                      <span className="badge badge--published" style={{ background: '#DCFCE7', color: '#15803D', borderColor: '#86EFAC' }}>
-                        PDF Ready
-                      </span>
-                    </div>
-                  ) : (
-                    <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '220px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
-                      <img src={handoverFilePreview} alt="Handover Form Preview" style={{ maxHeight: '200px', maxWidth: '100%', objectFit: 'contain' }} />
-                    </div>
-                  )}
+                <div style={{ border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', overflow: 'hidden', maxHeight: '220px', background: '#0F172A', textAlign: 'center', padding: '10px' }}>
+                  <img src={handoverFilePreview} alt="Handover Form Preview" style={{ maxHeight: '200px', maxWidth: '100%', objectFit: 'contain' }} />
                 </div>
               )}
 
