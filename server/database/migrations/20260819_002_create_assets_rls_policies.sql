@@ -28,17 +28,17 @@ CREATE POLICY "Public Read Item Assets" ON public.assets
     );
 
 -- 4. Supabase Storage Bucket Initialization (project-assets)
--- Private bucket configuration to protect sensitive physical handover forms and student PII.
+-- Set public = true so public image URLs under /storage/v1/object/public/ work directly
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
     'project-assets',
     'project-assets',
-    false, -- Private bucket: access controlled via RLS and backend signed URLs
+    true, -- Public bucket: allows direct public URLs for item images
     10485760, -- 10MB
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'text/plain']
 )
 ON CONFLICT (id) DO UPDATE SET
-    public = false,
+    public = true,
     file_size_limit = 10485760,
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'text/plain'];
 

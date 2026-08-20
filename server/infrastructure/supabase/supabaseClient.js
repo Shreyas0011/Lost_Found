@@ -30,6 +30,11 @@ if (!useMockClient) {
   supabaseAdmin = createClient(config.url, config.serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Ensure storage bucket project-assets is configured as Public so direct image URLs work without 400 Bad Request
+  supabaseAdmin.storage.updateBucket(config.bucket || 'project-assets', { public: true }).catch((err) => {
+    console.warn('Storage bucket update warning:', err.message);
+  });
 } else {
   // Unit test mock client for fast, isolated test suite execution
   const dummyClient = {
