@@ -2,8 +2,9 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { authenticateStudent, authenticateAdmin, authenticateAny } = require('../middleware/auth');
+const SupabaseItemRepository = require('../repositories/supabaseItemRepository');
 const SupabaseStudentRepository = require('../repositories/supabaseStudentRepository');
+const { authenticateStudent, authenticateAdmin, authenticateAny } = require('../middleware/auth');
 const AssetService = require('../services/assetService');
 
 const itemRepo = new SupabaseItemRepository();
