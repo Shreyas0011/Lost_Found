@@ -1,10 +1,10 @@
 const express = require('express');
-const SupabaseClaimRepository = require('../repositories/supabaseClaimRepository');
-const SupabaseItemRepository = require('../repositories/supabaseItemRepository');
+const MongoClaimRepository = require('../repositories/mongoClaimRepository');
+const MongoItemRepository = require('../repositories/mongoItemRepository');
 const { authenticateStudent, authenticateAdmin } = require('../middleware/auth');
 
-const claimRepo = new SupabaseClaimRepository();
-const itemRepo = new SupabaseItemRepository();
+const claimRepo = new MongoClaimRepository();
+const itemRepo = new MongoItemRepository();
 const router = express.Router();
 
 // POST /api/claims — Create ownership request (student)

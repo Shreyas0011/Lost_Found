@@ -17,6 +17,14 @@ server/uploads/
 
 # Environment & Builds
 .env
+server/.env
 dist/
 build/
 .DS_Store
+
+# Data, Seed Scripts & CSVs
+*.csv
+server/seed/students.csv
+server/scripts/seed*
+server/scripts/import*
+

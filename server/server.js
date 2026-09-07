@@ -8,15 +8,14 @@ const cron = require('node-cron');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 
-const SupabaseItemRepository = require('./repositories/supabaseItemRepository');
-const SupabaseClaimRepository = require('./repositories/supabaseClaimRepository');
-const SupabaseMessageRepository = require('./repositories/supabaseMessageRepository');
-const AssetService = require('./services/assetService');
+const MongoItemRepository = require('./repositories/mongoItemRepository');
+const MongoClaimRepository = require('./repositories/mongoClaimRepository');
+const MongoMessageRepository = require('./repositories/mongoMessageRepository');
 
-const itemRepo = new SupabaseItemRepository();
-const claimRepo = new SupabaseClaimRepository();
-const messageRepo = new SupabaseMessageRepository();
-const assetService = new AssetService();
+const itemRepo = new MongoItemRepository();
+const claimRepo = new MongoClaimRepository();
+const messageRepo = new MongoMessageRepository();
+
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -134,47 +133,16 @@ io.on('connection', (socket) => {
   });
 });
 
-// ─── AUTO-EXPIRY CRON ─────────────────────────────────────────────────────────
+const { autoDonateUnclaimedItems } = require('./services/autoDonateService');
+
+// ─── AUTO-EXPIRY & AUTO-DONATE CRON ───────────────────────────────────────────
 // Runs every day at midnight
 cron.schedule('0 0 * * *', async () => {
-  console.log('🕐 Running auto-expiry job...');
+  console.log('🕐 Running auto-donate & auto-expiry job...');
   try {
-    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const expiredItems = await itemRepo.getExpiringItems(cutoff);
-
-    for (const item of expiredItems) {
-      // Delete image file
-      if (item.image_filename) {
-        const imgPath = path.join(uploadsDir, item.image_filename);
-        if (fs.existsSync(imgPath)) {
-          fs.unlinkSync(imgPath);
-          console.log(`  🗑️  Deleted image: ${item.image_filename}`);
-        }
-      }
-
-      // Delete assets from Supabase Storage if present
-      if (item.asset_id) {
-        try { await assetService.deleteAsset(item.asset_id, { role: 'admin' }, true); } catch (e) {}
-      }
-      if (item.handover_asset_id) {
-        try { await assetService.deleteAsset(item.handover_asset_id, { role: 'admin' }, true); } catch (e) {}
-      }
-
-      // Delete related ownership requests and messages
-      const requests = await claimRepo.getAllClaims({ item_id: item.id });
-      for (const req of requests) {
-        await messageRepo.deleteMessagesByRequestId(req.id);
-      }
-      await claimRepo.deleteClaimsByItem(item.id);
-
-      // Delete item
-      await itemRepo.deleteItem(item.id);
-      console.log(`  ✅ Expired item deleted: ${item.id}`);
-    }
-
-    console.log(`🕐 Auto-expiry done — ${expiredItems.length} items removed.`);
+    await autoDonateUnclaimedItems();
   } catch (err) {
-    console.error('Auto-expiry error:', err);
+    console.error('Auto-donate cron error:', err);
   }
 });
 
@@ -192,7 +160,7 @@ app.get('*', (req, res) => {
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
   server.listen(PORT, () => {
-    console.log(`🚀 Supabase PostgreSQL Express Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Transcend Lost & Found Server (MongoDB + Cloudinary) running on http://localhost:${PORT}`);
   });
 }
 

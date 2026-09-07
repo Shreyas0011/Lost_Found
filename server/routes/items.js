@@ -2,14 +2,14 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const SupabaseItemRepository = require('../repositories/supabaseItemRepository');
-const SupabaseStudentRepository = require('../repositories/supabaseStudentRepository');
+const MongoItemRepository = require('../repositories/mongoItemRepository');
+const MongoStudentRepository = require('../repositories/mongoStudentRepository');
 const { authenticateStudent, authenticateAdmin, authenticateAny } = require('../middleware/auth');
-const AssetService = require('../services/assetService');
+const { uploadToCloudinary } = require('../services/cloudinaryService');
+const { autoDonateUnclaimedItems } = require('../services/autoDonateService');
 
-const itemRepo = new SupabaseItemRepository();
-const studentRepo = new SupabaseStudentRepository();
-const assetService = new AssetService();
+const itemRepo = new MongoItemRepository();
+const studentRepo = new MongoStudentRepository();
 const router = express.Router();
 
 // Multer config
@@ -51,6 +51,9 @@ function parseMultiQuery(val) {
 // GET /api/items — Search published items (public)
 router.get('/', async (req, res) => {
   try {
+    // Perform background check to automatically move unclaimed items >30 days to DONATED
+    autoDonateUnclaimedItems().catch(() => {});
+
     const { category, location_found, date_from, date_to, q } = req.query;
     const filter = { status: 'PUBLISHED' };
 
@@ -91,6 +94,19 @@ router.post('/', authenticateAny, upload.single('image'), async (req, res) => {
     let imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
     let imageFilename = req.file ? req.file.filename : '';
     let assetId = null;
+
+    // 1. Primary Upload via Cloudinary
+    if (req.file) {
+      try {
+        const cRes = await uploadToCloudinary(req.file.path, 'lost_and_found_items');
+        if (cRes && cRes.secure_url) {
+          imageUrl = cRes.secure_url;
+          console.log('✅ Image successfully uploaded to Cloudinary:', imageUrl);
+        }
+      } catch (cErr) {
+        console.warn('⚠️ Cloudinary upload failed, using local/asset fallback:', cErr.message);
+      }
+    }
 
     const serial_number = `LF-${Math.floor(10000 + Math.random() * 90000)}`;
     const uid = `UID-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;

@@ -1,10 +1,10 @@
 const express = require('express');
-const SupabaseMessageRepository = require('../repositories/supabaseMessageRepository');
-const SupabaseClaimRepository = require('../repositories/supabaseClaimRepository');
+const MongoMessageRepository = require('../repositories/mongoMessageRepository');
+const MongoClaimRepository = require('../repositories/mongoClaimRepository');
 const { authenticateAny } = require('../middleware/auth');
 
-const messageRepo = new SupabaseMessageRepository();
-const claimRepo = new SupabaseClaimRepository();
+const messageRepo = new MongoMessageRepository();
+const claimRepo = new MongoClaimRepository();
 const router = express.Router();
 
 // GET /api/messages/:requestId — Load chat history for a request

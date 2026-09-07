@@ -2,13 +2,13 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
-const SupabaseStudentRepository = require('../repositories/supabaseStudentRepository');
+const MongoStudentRepository = require('../repositories/mongoStudentRepository');
 
-const studentRepo = new SupabaseStudentRepository();
+const studentRepo = new MongoStudentRepository();
 const CSV_PATH = path.join(__dirname, 'students.csv');
 
 async function seed() {
-  console.log('🌱 Seeding Students into Supabase PostgreSQL Database...');
+  console.log('🌱 Seeding Students into MongoDB database: lost_found...');
   const students = [];
 
   fs.createReadStream(CSV_PATH)

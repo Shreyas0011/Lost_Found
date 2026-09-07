@@ -1,10 +1,10 @@
 const express = require('express');
-const SupabaseItemRepository = require('../repositories/supabaseItemRepository');
-const SupabaseClaimRepository = require('../repositories/supabaseClaimRepository');
+const MongoItemRepository = require('../repositories/mongoItemRepository');
+const MongoClaimRepository = require('../repositories/mongoClaimRepository');
 const { authenticateAdmin } = require('../middleware/auth');
 
-const itemRepo = new SupabaseItemRepository();
-const claimRepo = new SupabaseClaimRepository();
+const itemRepo = new MongoItemRepository();
+const claimRepo = new MongoClaimRepository();
 const router = express.Router();
 
 // GET /api/admin/stats — Dashboard summary stats
@@ -47,6 +47,10 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('Stats error:', err);
+    return res.status(500).json({ error: 'Failed to fetch admin stats' });
+  }
+});
+
 let storedFormFields = {
   categories: ['Electronics', 'Clothing', 'Books', 'ID / Cards', 'Accessories', 'Bags', 'Keys', 'Stationery', 'Other'],
   locations: ['Library', 'Cafeteria', 'Classroom', 'Hostel', 'Parking', 'Sports Area', 'Administrative Block', 'Other'],
