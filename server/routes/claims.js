@@ -17,7 +17,7 @@ router.post('/', authenticateStudent, async (req, res) => {
     }
 
     const item = await itemRepo.getItemById(item_id);
-    if (!item || item.status !== 'PUBLISHED') {
+    if (!item || (item.status !== 'PUBLISHED' && item.status !== 'UNCLAIMED')) {
       return res.status(404).json({ error: 'Item not found or not available for claims.' });
     }
 

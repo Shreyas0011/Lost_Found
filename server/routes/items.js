@@ -74,9 +74,6 @@ router.get('/:id', async (req, res) => {
   try {
     const item = await itemRepo.getItemById(req.params.id);
     if (!item) return res.status(404).json({ error: 'Item not found.' });
-    if (item.status !== 'PUBLISHED' && item.status !== 'DEACTIVATED') {
-      return res.status(403).json({ error: 'This item is not publicly available.' });
-    }
     return res.json({ item });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch item.' });
