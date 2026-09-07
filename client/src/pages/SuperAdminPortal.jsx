@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch, formatDate, getFormFields, saveFormFields, DEFAULT_FORM_FIELDS } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
+import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, Plus, Trash2, UserCheck, RefreshCw, Key, Settings, Server, Database, CheckCircle, AlertTriangle, Edit3, Save, Layers, MapPin, ListPlus } from 'lucide-react';
 
 export default function SuperAdminPortal() {
+  const { user } = useAuth();
   const [admins, setAdmins] = useState([
     { id: '1', username: 'admin', role: 'admin', created_at: new Date().toISOString(), status: 'Active' },
     { id: '2', username: 'superadmin', role: 'superadmin', created_at: new Date().toISOString(), status: 'Active' },
@@ -176,7 +178,7 @@ export default function SuperAdminPortal() {
       <main className="admin-main">
         <div className="page-header">
           <div className="page-header__eyebrow" style={{ color: '#7E22CE', fontWeight: 800 }}>
-            ⚡ SuperAdmin System Overrides &amp; Management
+            ⚡ SuperAdmin Active — Welcome, {user?.name || user?.username || 'SuperAdmin'}
           </div>
           <h1 className="page-header__title">SuperAdmin Control Portal</h1>
           <p className="page-header__sub">Full administrative privileges to manage admin accounts, edit admin form fields &amp; categories, and inspect system audit logs.</p>

@@ -24,11 +24,19 @@ export default function AdminSidebar() {
         {isSuperAdmin ? 'SuperAdmin Control' : 'Transcend Admin'}
       </div>
 
-      {isSuperAdmin && (
-        <div style={{ margin: '0 var(--space-md) var(--space-md) var(--space-md)', padding: '6px 12px', background: 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)', borderRadius: 'var(--radius-md)', color: '#FDE047', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Zap size={14} fill="#FDE047" /> SUPERADMIN ACTIVE
+      {/* Logged-in Admin Identity Badge */}
+      <div style={{ margin: '0 var(--space-md) var(--space-md) var(--space-md)', padding: '10px 12px', background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: 'var(--radius-md)', color: '#fff' }}>
+        <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94A3B8', fontWeight: 700 }}>
+          Logged in as
         </div>
-      )}
+        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#FFFFFF', margin: '2px 0 6px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          👤 {user?.name || user?.username || 'Administrator'}
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '12px', fontSize: '0.68rem', fontWeight: 800, background: isSuperAdmin ? 'linear-gradient(135deg, #4338CA 0%, #7E22CE 100%)' : '#2563EB', color: '#FFFFFF' }}>
+          {isSuperAdmin ? <Zap size={11} fill="#FDE047" color="#FDE047" /> : null}
+          {user?.role ? user.role.toUpperCase() : 'ADMIN'}
+        </div>
+      </div>
 
       <nav className="admin-nav">
         <Link to="/admin/dashboard" className={location.pathname === '/admin/dashboard' ? 'active' : ''}>

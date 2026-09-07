@@ -27,7 +27,7 @@ export default function AdminLogin() {
         method: 'POST',
         body: { username: 'admin', password: 'admin123' },
       });
-      loginAdmin(data.username, data.token, data.role || 'admin');
+      loginAdmin(data.username, data.token, data.role || 'admin', { name: data.name || data.username || 'Campus Admin' });
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err.message || 'Quick admin login failed.');
@@ -44,7 +44,7 @@ export default function AdminLogin() {
         method: 'POST',
         body: { username: 'superadmin', password: 'superadmin123' },
       });
-      loginAdmin(data.username, data.token, data.role || 'superadmin');
+      loginAdmin(data.username, data.token, data.role || 'superadmin', { name: data.name || data.username || 'System SuperAdmin' });
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err.message || 'Quick super admin login failed.');
@@ -69,7 +69,7 @@ export default function AdminLogin() {
         body: { username: username.trim(), password },
       });
 
-      loginAdmin(data.username, data.token, data.role || 'admin');
+      loginAdmin(data.username, data.token, data.role || 'admin', { name: data.name || data.username });
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err.message || 'Invalid admin or superadmin credentials.');

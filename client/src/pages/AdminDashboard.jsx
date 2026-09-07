@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { apiFetch, formatDate, getCategoryIcon, getImageUrl } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
 import StatusBadge from '../components/StatusBadge';
+import { useAuth } from '../context/AuthContext';
 import { Package, Clock, CheckCircle, ShieldAlert, AlertTriangle, ArrowRight, RefreshCw, Archive, HeartHandshake } from 'lucide-react';
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [recentItems, setRecentItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,8 +40,12 @@ export default function AdminDashboard() {
 
       <main className="admin-main">
         <div className="page-header">
-          <div className="page-header__eyebrow">👋 Welcome back</div>
-          <h1 className="page-header__title">Transcend Admin Dashboard</h1>
+          <div className="page-header__eyebrow">
+            👋 Welcome back, <strong>{user?.name || user?.username || (user?.role === 'superadmin' ? 'SuperAdmin' : 'Admin')}</strong>
+          </div>
+          <h1 className="page-header__title">
+            {user?.role === 'superadmin' ? 'SuperAdmin Dashboard' : 'Transcend Admin Dashboard'}
+          </h1>
           <p className="page-header__sub">Overview of found items and unclaimed inventory.</p>
         </div>
 
