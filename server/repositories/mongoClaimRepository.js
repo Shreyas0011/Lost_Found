@@ -1,5 +1,15 @@
 const { getMongoDb } = require('../config/mongoClient');
+const { ObjectId } = require('mongodb');
 const crypto = require('crypto');
+
+function buildIdQuery(id) {
+  if (!id) return { _id: null };
+  const queries = [{ id: id }, { _id: id }];
+  if (typeof id === 'string' && ObjectId.isValid(id) && id.length === 24) {
+    queries.push({ _id: new ObjectId(id) });
+  }
+  return { $or: queries };
+}
 
 class MongoClaimRepository {
   async _getCollection() {
@@ -16,9 +26,7 @@ class MongoClaimRepository {
     if (populateStudent && typeof record.student_id === 'string') {
       try {
         const db = await getMongoDb();
-        const studentDoc = await db.collection('students').findOne({
-          $or: [{ id: record.student_id }, { _id: record.student_id }],
-        });
+        const studentDoc = await db.collection('students').findOne(buildIdQuery(record.student_id));
         if (studentDoc) {
           studentObj = {
             id: studentDoc.id || studentDoc._id?.toString(),
@@ -85,9 +93,7 @@ class MongoClaimRepository {
   async getClaimById(id, populateStudent = false) {
     if (!id) return null;
     const collection = await this._getCollection();
-    const doc = await collection.findOne({
-      $or: [{ id: id }, { _id: id }],
-    });
+    const doc = await collection.findOne(buildIdQuery(id));
     return this._mapClaim(doc, populateStudent);
   }
 
@@ -134,7 +140,7 @@ class MongoClaimRepository {
     });
 
     await collection.updateOne(
-      { $or: [{ id: id }, { _id: id }] },
+      buildIdQuery(id),
       { $set: record }
     );
 

@@ -1,5 +1,15 @@
 const { getMongoDb } = require('../config/mongoClient');
+const { ObjectId } = require('mongodb');
 const crypto = require('crypto');
+
+function buildIdQuery(id) {
+  if (!id) return { _id: null };
+  const queries = [{ id: id }, { _id: id }];
+  if (typeof id === 'string' && ObjectId.isValid(id) && id.length === 24) {
+    queries.push({ _id: new ObjectId(id) });
+  }
+  return { $or: queries };
+}
 
 class MongoStudentRepository {
   async _getCollection() {
@@ -39,9 +49,7 @@ class MongoStudentRepository {
   async findById(id) {
     if (!id) return null;
     const collection = await this._getCollection();
-    const doc = await collection.findOne({
-      $or: [{ id: id }, { _id: id }],
-    });
+    const doc = await collection.findOne(buildIdQuery(id));
     return this._mapStudent(doc);
   }
 

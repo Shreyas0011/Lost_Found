@@ -1,5 +1,15 @@
 const { getMongoDb } = require('../config/mongoClient');
+const { ObjectId } = require('mongodb');
 const crypto = require('crypto');
+
+function buildIdQuery(id) {
+  if (!id) return { _id: null };
+  const queries = [{ id: id }, { _id: id }];
+  if (typeof id === 'string' && ObjectId.isValid(id) && id.length === 24) {
+    queries.push({ _id: new ObjectId(id) });
+  }
+  return { $or: queries };
+}
 
 class MongoItemRepository {
   async _getCollection() {
@@ -82,7 +92,7 @@ class MongoItemRepository {
     };
 
     await collection.updateOne(
-      { id: id },
+      buildIdQuery(id),
       { $set: record, $setOnInsert: { _id: id, createdAt: itemData.createdAt || now } },
       { upsert: true }
     );
@@ -93,9 +103,7 @@ class MongoItemRepository {
   async getItemById(id) {
     if (!id) return null;
     const collection = await this._getCollection();
-    const doc = await collection.findOne({
-      $or: [{ id: id }, { _id: id }],
-    });
+    const doc = await collection.findOne(buildIdQuery(id));
     return this._mapItem(doc);
   }
 
@@ -181,7 +189,7 @@ class MongoItemRepository {
     });
 
     await collection.updateOne(
-      { $or: [{ id: id }, { _id: id }] },
+      buildIdQuery(id),
       { $set: record }
     );
 
@@ -191,9 +199,7 @@ class MongoItemRepository {
   async deleteItem(id) {
     if (!id) return { success: false };
     const collection = await this._getCollection();
-    const res = await collection.deleteOne({
-      $or: [{ id: id }, { _id: id }],
-    });
+    const res = await collection.deleteOne(buildIdQuery(id));
     return { success: res.deletedCount > 0 };
   }
 
