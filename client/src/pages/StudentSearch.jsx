@@ -226,10 +226,13 @@ export default function StudentSearch() {
       {loading ? (
         <div className="loading-overlay"><div className="spinner"></div></div>
       ) : items.length === 0 ? (
-        <div className="empty-state" style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', border: '1px solid var(--clr-border)', padding: 'var(--space-3xl)' }}>
+        <div className="empty-state" style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', border: '1px solid var(--clr-border)', padding: 'var(--space-3xl)', textAlign: 'center' }}>
           <div className="empty-state__icon">📦</div>
           <p className="empty-state__title">No items found</p>
           <p className="empty-state__text">Try adjusting your search criteria or resetting filters.</p>
+          <button type="button" className="btn btn--secondary btn--sm" style={{ marginTop: 'var(--space-md)', marginInline: 'auto' }} onClick={clearFilters}>
+            <RefreshCw size={14} /> Clear Search &amp; Reset Filters
+          </button>
         </div>
       ) : (
         <div className="items-grid">

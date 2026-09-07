@@ -185,6 +185,8 @@ export default function AdminItems() {
     const s = searchParams.get('status');
     if (s) {
       setSelectedStatuses(s.split(','));
+    } else {
+      setSelectedStatuses([]);
     }
   }, [searchParams]);
 
@@ -475,10 +477,19 @@ export default function AdminItems() {
             </div>
           </div>
         ) : items.length === 0 ? (
-          <div className="empty-state" style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: 'var(--space-3xl)', border: '1.5px solid var(--clr-border)' }}>
+          <div className="empty-state" style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: 'var(--space-3xl)', border: '1.5px solid var(--clr-border)', textAlign: 'center' }}>
             <div className="empty-state__icon">📦</div>
             <p className="empty-state__title">No items found</p>
-            <p className="empty-state__text">No items match the selected filter criteria.</p>
+            <p className="empty-state__text">
+              {isDonatedTab
+                ? 'No items have been moved to the Donated Catalogue yet. Unclaimed items older than 30 days are automatically archived here.'
+                : isDeactivatedTab
+                ? 'No deactivated items found in inventory.'
+                : 'No items match the selected filter criteria.'}
+            </p>
+            <button className="btn btn--secondary btn--sm" style={{ marginTop: 'var(--space-md)', marginInline: 'auto' }} onClick={resetAllFilters}>
+              <RefreshCw size={14} /> Clear All Filters &amp; View Inventory
+            </button>
           </div>
         ) : (
           <div className="table-wrap">
