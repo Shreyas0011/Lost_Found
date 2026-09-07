@@ -587,24 +587,36 @@ export default function AdminItems() {
                             </button>
                           )}
 
-                          {item.status !== 'DONATED' && item.status !== 'DEACTIVATED' && (
-                            <button
-                              className="btn btn--secondary btn--sm"
-                              style={
-                                (Math.floor((Date.now() - new Date(item.uploaded_at || item.date_found || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) >= 30 || item.status === 'UNCLAIMED' || item.status === 'EXPIRED')
-                                  ? { background: '#F3E8FF', color: '#7E22CE', borderColor: '#E9D5FF', fontWeight: 800 }
-                                  : { opacity: 0.75, background: '#F1F5F9', color: '#475569', borderColor: '#CBD5E1' }
-                              }
-                              onClick={() => handleDonateClick(item)}
-                              title={
-                                (Math.floor((Date.now() - new Date(item.uploaded_at || item.date_found || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) >= 30 || item.status === 'UNCLAIMED' || item.status === 'EXPIRED')
-                                  ? "1-Month collection window elapsed — Click to Donate"
-                                  : `1-Month collection window active (${30 - Math.floor((Date.now() - new Date(item.uploaded_at || item.date_found || Date.now()).getTime()) / (1000 * 60 * 60 * 24))} days remaining)`
-                              }
-                            >
-                              <HeartHandshake size={14} /> Donate
-                            </button>
-                          )}
+                  {(() => {
+                    const addedDate = new Date(item.uploaded_at || item.createdAt || item.date_found || Date.now());
+                    const daysUnclaimed = Math.floor((Date.now() - addedDate.getTime()) / (1000 * 60 * 60 * 24));
+                    const isUnclaimedState = item.status !== 'CLAIMED' && item.status !== 'RETURNED' && item.status !== 'DONATED' && item.status !== 'DEACTIVATED';
+                    const canDonateNow = isUnclaimedState && daysUnclaimed >= 30;
+
+                    if (canDonateNow) {
+                      return (
+                        <button
+                          className="btn btn--secondary btn--sm"
+                          style={{ background: '#F3E8FF', color: '#7E22CE', borderColor: '#E9D5FF', fontWeight: 800 }}
+                          onClick={() => handleStatusChange(item._id || item.id, 'DONATED')}
+                          title="30 days elapsed unclaimed — Click to move item to Donated Catalogue"
+                        >
+                          <HeartHandshake size={14} /> Donate Item
+                        </button>
+                      );
+                    } else if (isUnclaimedState) {
+                      const daysRemaining = Math.max(1, 30 - daysUnclaimed);
+                      return (
+                        <span
+                          style={{ fontSize: '0.74rem', color: '#64748B', background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          title={`Unclaimed collection window active. Donate option unlocks after 30 days (${daysRemaining} day(s) remaining).`}
+                        >
+                          <Clock size={12} /> Donate in {daysRemaining}d
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
 
                           {item.status !== 'DEACTIVATED' ? (
                             <button

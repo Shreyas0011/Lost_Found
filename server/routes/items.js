@@ -206,9 +206,25 @@ router.patch('/admin/:id/status', authenticateAdmin, async (req, res) => {
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: 'Invalid status.' });
     }
-    const item = await itemRepo.updateItem(req.params.id, { status });
+    const item = await itemRepo.getItemById(req.params.id);
     if (!item) return res.status(404).json({ error: 'Item not found.' });
-    return res.json({ message: 'Status updated.', item });
+
+    // Enforce 30-day unclaimed requirement for DONATED status
+    if (status === 'DONATED') {
+      const addedDateStr = item.uploaded_at || item.createdAt || item.date_found;
+      const addedDate = addedDateStr ? new Date(addedDateStr) : new Date();
+      const diffMs = Date.now() - addedDate.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 30) {
+        return res.status(400).json({
+          error: `Item cannot be donated yet. Only items left unclaimed for at least 30 days after being added can be donated (${Math.max(1, 30 - diffDays)} day(s) remaining).`
+        });
+      }
+    }
+
+    const updatedItem = await itemRepo.updateItem(req.params.id, { status });
+    return res.json({ message: 'Status updated.', item: updatedItem });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to update status.' });
   }
