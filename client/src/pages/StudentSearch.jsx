@@ -353,7 +353,7 @@ export default function StudentSearch() {
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value)}
                   >
-                    {CATEGORIES.map((c) => (
+                    {categories.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -365,7 +365,7 @@ export default function StudentSearch() {
                     value={editLocationFound}
                     onChange={(e) => setEditLocationFound(e.target.value)}
                   >
-                    {LOCATIONS.map((l) => (
+                    {locations.map((l) => (
                       <option key={l} value={l}>{l}</option>
                     ))}
                   </select>

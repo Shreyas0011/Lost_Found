@@ -387,7 +387,7 @@ export default function AdminItems() {
               </button>
               {openDropdown === 'category' && (
                 <div style={{ position: 'absolute', top: '105%', left: 0, minWidth: '100%', width: 'max-content', maxWidth: '240px', zIndex: 1001, background: '#FFF', border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', padding: '8px', boxShadow: '0 14px 35px -5px rgba(15, 23, 42, 0.25)', maxHeight: '240px', overflowY: 'auto' }}>
-                  {CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', fontSize: '0.84rem', cursor: 'pointer', borderRadius: '4px' }}>
                       <input
                         type="checkbox"
@@ -414,7 +414,7 @@ export default function AdminItems() {
               </button>
               {openDropdown === 'location' && (
                 <div style={{ position: 'absolute', top: '105%', left: 0, minWidth: '100%', width: 'max-content', maxWidth: '240px', zIndex: 1001, background: '#FFF', border: '1.5px solid var(--clr-border-indigo)', borderRadius: 'var(--radius-md)', padding: '8px', boxShadow: '0 14px 35px -5px rgba(15, 23, 42, 0.25)', maxHeight: '240px', overflowY: 'auto' }}>
-                  {LOCATIONS.map((loc) => (
+                  {locations.map((loc) => (
                     <label key={loc} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', fontSize: '0.84rem', cursor: 'pointer', borderRadius: '4px' }}>
                       <input
                         type="checkbox"
@@ -812,7 +812,7 @@ export default function AdminItems() {
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value)}
                   >
-                    {CATEGORIES.map((c) => (
+                    {categories.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -824,7 +824,7 @@ export default function AdminItems() {
                     value={editLocationFound}
                     onChange={(e) => setEditLocationFound(e.target.value)}
                   >
-                    {LOCATIONS.map((l) => (
+                    {locations.map((l) => (
                       <option key={l} value={l}>{l}</option>
                     ))}
                   </select>

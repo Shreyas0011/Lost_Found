@@ -55,10 +55,14 @@ router.get('/', async (req, res) => {
     autoDonateUnclaimedItems().catch(() => {});
 
     const { category, location_found, date_from, date_to, q } = req.query;
-    const filter = { status: 'PUBLISHED' };
+    const filter = {
+      status: ['PUBLISHED', 'published', 'UNCLAIMED', 'unclaimed']
+    };
 
     if (category) filter.category = parseMultiQuery(category);
     if (location_found) filter.location_found = parseMultiQuery(location_found);
+    if (date_from) filter.date_from = date_from;
+    if (date_to) filter.date_to = date_to;
     if (q) filter.q = q;
 
     const items = await itemRepo.findItems(filter);
@@ -176,13 +180,16 @@ router.post('/', authenticateAny, upload.single('image'), async (req, res) => {
 // GET /api/items/admin/all — All items for admin
 router.get('/admin/all', authenticateAdmin, async (req, res) => {
   try {
-    const { status, category, location_found, reported_by, serial_number } = req.query;
+    const { status, category, location_found, reported_by, serial_number, date_from, date_to } = req.query;
     const filter = {};
 
     if (status) filter.status = parseMultiQuery(status);
     if (category) filter.category = parseMultiQuery(category);
     if (location_found) filter.location_found = parseMultiQuery(location_found);
     if (reported_by) filter.student_name = parseMultiQuery(reported_by);
+    if (serial_number) filter.serial_number = parseMultiQuery(serial_number);
+    if (date_from) filter.date_from = date_from;
+    if (date_to) filter.date_to = date_to;
 
     const items = await itemRepo.findItems(filter);
     return res.json({ items });

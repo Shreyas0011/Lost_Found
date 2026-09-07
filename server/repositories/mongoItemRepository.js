@@ -149,14 +149,56 @@ class MongoItemRepository {
       }
     }
 
+    if (filter.serial_number) {
+      if (Array.isArray(filter.serial_number)) {
+        query.$or = query.$or || [];
+        query.$or.push(
+          { serial_number: { $in: filter.serial_number } },
+          { uid: { $in: filter.serial_number } }
+        );
+      } else {
+        query.$or = query.$or || [];
+        query.$or.push(
+          { serial_number: filter.serial_number },
+          { uid: filter.serial_number }
+        );
+      }
+    }
+
+    if (filter.date_from || filter.date_to) {
+      query.date_found = query.date_found || {};
+      if (filter.date_from) {
+        query.date_found.$gte = new Date(filter.date_from).toISOString();
+      }
+      if (filter.date_to) {
+        const dt = new Date(filter.date_to);
+        dt.setHours(23, 59, 59, 999);
+        query.date_found.$lte = dt.toISOString();
+      }
+    }
+
     if (filter.q) {
-      const reg = new RegExp(filter.q, 'i');
-      query.$or = [
+      const escaped = String(filter.q).replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const reg = new RegExp(escaped, 'i');
+      const qConditions = [
         { serial_number: reg },
         { uid: reg },
+        { category: reg },
+        { location_found: reg },
         { description: reg },
         { who_found: reg },
+        { student_name: reg },
+        { registration_number: reg },
       ];
+      if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { $or: qConditions }
+        ];
+        delete query.$or;
+      } else {
+        query.$or = qConditions;
+      }
     }
 
     const docs = await collection.find(query).sort({ uploaded_at: -1, createdAt: -1 }).toArray();
